@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Spending Timeline - Expense Tracker{% endblock %}
+
+{% block content %}
+<h1>My Spending Timeline</h1>
+<div id="timelineMessages"></div>
+<div id="timelineContainer">
+    <p>Loading expenses...</p>
+</div>
+<div class="pagination mt-2">
+    <button id="prevPageBtn" onclick="loadPage('prev')" style="display:none;" class="button secondary">Previous</button>
+    <span id="pageInfo"></span>
+    <button id="nextPageBtn" onclick="loadPage('next')" style="display:none;" class="button secondary">Next</button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const timelineContainer = document.getElementById('timelineContainer');
+    const timelineMessages = document.getElementById('timelineMessages');
+    const prevPageBtn = document.getElementById('prevPageBtn');
+    const nextPageBtn = document.getElementById('nextPageBtn');
+    const pageInfoSpan = document.getElementById('pageInfo');
+
+    let currentPage = 1;
+    const perPage = 10; 
+
+    function displayTimelineMessage(message, type = 'info') {
+        timelineMessages.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+        setTimeout(() => { timelineMessages.innerHTML = ''; }, 5000);
+    }
+
+    async function fetchExpensesForTimeline(page) {
+        timelineContainer.innerHTML = '<p>Loading expenses...</p>'; 
+        try {
+            // Use url_for for the base API endpoint, then add query parameters
+            const baseApiUrl = "{{ url_for('expenses_timeline_api') }}";
+            const response = await fetch(`${baseApiUrl}?page=${page}&per_page=${perPage}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            
+            if ((!data.expenses || data.expenses.length === 0) && page === 1) {
+                timelineContainer.innerHTML = '<p>No expenses found. Start by <a href="{{ url_for("add_expense_page") }}">adding an expense</a>!</p>';
+                prevPageBtn.style.display = 'none';
+                nextPageBtn.style.display = 'none';
+                pageInfoSpan.textContent = '';
+                return;
+            } else if ((!data.expenses || data.expenses.length === 0) && page > 1) {
+                 displayTimelineMessage('No more expenses to load.', 'info');
+                 currentPage = data.current_page > 0 ? data.current_page : 1; 
+                 nextPageBtn.style.display = 'none'; 
+                 prevPageBtn.style.display = data.has_prev ? 'inline-block' : 'none';
+                 pageInfoSpan.textContent = `Page ${currentPage} of ${data.total_pages}`;
+                 if(timelineContainer.querySelectorAll('.card').length === 0){ 
+                    timelineContainer.innerHTML = '<p>No expenses on this page.</p>';
+                 }
+                 return;
+            }
+
+            let html = '';
+            data.expenses.forEach(exp => {
+                const emotionEmoji = {
+                    happy: '😊', neutral: '😐', sad: '😟', stressed: '😠', excited: '🎉', 
+                    regretful: '🤦', necessary: '✅', motivated: '💪' // Added motivated
+                };
+                // Ensure date string is correctly parsed, add T00:00:00 for local interpretation
+                const expenseDate = exp.date ? new Date(exp.date + 'T00:00:00').toLocaleDateString() : 'N/A';
+
+                html += `
+                    <div class="card">
+                        <p><strong>Date:</strong> ${expenseDate}</p>
+                        <p><strong>Description:</strong> ${exp.description || 'N/A'}</p>
+                        <p><strong>Amount:</strong> ₹${exp.amount.toFixed(2)}</p>
+                        <p><strong>Category:</strong> ${exp.category || 'Uncategorized'}</p>
+                        ${exp.merchant ? `<p><strong>Merchant:</strong> ${exp.merchant}</p>` : ''}
+                        ${exp.emotion ? `<p><strong>Felt:</strong> ${emotionEmoji[exp.emotion] || ''} ${exp.emotion}</p>` : ''}
+                    </div>
+                `;
+            });
+            timelineContainer.innerHTML = html;
+
+            currentPage = data.current_page;
+            pageInfoSpan.textContent = `Page ${currentPage} of ${data.total_pages}`;
+            prevPageBtn.style.display = data.has_prev ? 'inline-block' : 'none';
+            nextPageBtn.style.display = data.has_next ? 'inline-block' : 'none';
+            prevPageBtn.disabled = false;
+            nextPageBtn.disabled = false;
+
+        } catch (error) {
+            console.error('Error fetching expenses for timeline:', error);
+            timelineContainer.innerHTML = `<p class="alert alert-danger">Could not load expenses: ${error.message}</p>`;
+            prevPageBtn.style.display = 'none';
+            nextPageBtn.style.display = 'none';
+            pageInfoSpan.textContent = '';
+        }
+    }
+
+    function loadPage(direction) {
+        if (direction === 'next') {
+            nextPageBtn.disabled = true; 
+            fetchExpensesForTimeline(currentPage + 1);
+        } else if (direction === 'prev' && currentPage > 1) {
+            prevPageBtn.disabled = true; 
+            fetchExpensesForTimeline(currentPage - 1);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (document.getElementById('timelineContainer')) { // Only run if on timeline page
+             fetchExpensesForTimeline(currentPage);
+        }
+    });
+</script>
+{% endblock %}

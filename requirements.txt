@@ -1,0 +1,6 @@
+Flask>=2.0
+Flask-SQLAlchemy>=2.5
+Flask-Login>=0.5
+Flask-Migrate>=3.0
+Flask-WTF>=1.0  # Add this line
+email-validator>=1.1 # Add this line

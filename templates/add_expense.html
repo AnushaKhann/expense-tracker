@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Log Expense - Expense Tracker{% endblock %}
+
+{% block content %}
+<h1>Log New Expense</h1>
+<div id="messageArea"></div> {# For JavaScript messages from smart log #}
+
+{# Smart Log Section - Uses JavaScript to POST JSON #}
+<div class="card">
+    <h2>Smart Log</h2>
+    <p>Type your expense naturally (e.g., "Spent 500 on Groceries at Big Bazaar on 2025-05-20")</p>
+    <div>
+        <label for="smartInput">Smart Input:</label>
+        <input type="text" id="smartInput" placeholder="e.g., 500 for dinner at Swiggy yesterday">
+    </div>
+    {# The smart log JavaScript will post to url_for('log_expense_json') #}
+    <button onclick="logSmart()" class="button">Log with Smart Input</button>
+</div>
+
+<hr style="margin: 30px 0;">
+
+{# Manual Log Section - Now uses WTForms #}
+<div class="card">
+    <h2>Or Log Manually (WTForms)</h2>
+    {# The form will POST to /add_expense_submit #}
+    <form method="POST" action="{{ url_for('add_expense_submit') }}" novalidate>
+        {{ manual_form.csrf_token }} {# CSRF protection token #}
+        
+        <div>
+            {{ manual_form.amount.label(class="form-label") }}
+            {% if manual_form.amount.errors %}
+                {{ manual_form.amount(class="form-control is-invalid", step="0.01") }}
+                <div class="invalid-feedback">
+                    {% for error in manual_form.amount.errors %}<span>{{ error }}</span>{% endfor %}
+                </div>
+            {% else %}
+                {{ manual_form.amount(class="form-control", step="0.01") }}
+            {% endif %}
+        </div>
+
+        <div class="mt-1">
+            {{ manual_form.category.label(class="form-label") }}
+            {% if manual_form.category.errors %}
+                {{ manual_form.category(class="form-control is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in manual_form.category.errors %}<span>{{ error }}</span>{% endfor %}
+                </div>
+            {% else %}
+                {{ manual_form.category(class="form-control") }}
+            {% endif %}
+        </div>
+
+        <div class="mt-1">
+            {{ manual_form.description.label(class="form-label") }}
+            {% if manual_form.description.errors %}
+                {{ manual_form.description(class="form-control is-invalid", rows="3") }}
+                <div class="invalid-feedback">
+                    {% for error in manual_form.description.errors %}<span>{{ error }}</span>{% endfor %}
+                </div>
+            {% else %}
+                {{ manual_form.description(class="form-control", rows="3") }}
+            {% endif %}
+        </div>
+
+        <div class="mt-1">
+            {{ manual_form.merchant.label(class="form-label") }}
+            {% if manual_form.merchant.errors %}
+                {{ manual_form.merchant(class="form-control is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in manual_form.merchant.errors %}<span>{{ error }}</span>{% endfor %}
+                </div>
+            {% else %}
+                {{ manual_form.merchant(class="form-control") }}
+            {% endif %}
+        </div>
+
+        <div class="mt-1">
+            {{ manual_form.date.label(class="form-label") }}
+            {% if manual_form.date.errors %}
+                {{ manual_form.date(class="form-control is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in manual_form.date.errors %}<span>{{ error }}</span>{% endfor %}
+                </div>
+            {% else %}
+                {{ manual_form.date(class="form-control") }}
+            {% endif %}
+        </div>
+        
+        <div class="mt-1">
+            {{ manual_form.emotion_tag.label(class="form-label") }}
+            {% if manual_form.emotion_tag.errors %}
+                {{ manual_form.emotion_tag(class="form-control is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in manual_form.emotion_tag.errors %}<span>{{ error }}</span>{% endfor %}
+                </div>
+            {% else %}
+                {{ manual_form.emotion_tag(class="form-control") }}
+            {% endif %}
+        </div>
+
+        <div class="mt-2">
+            {{ manual_form.submit(class="button") }}
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // JavaScript for Smart Log
+    const messageArea = document.getElementById('messageArea');
+
+    function displayMessage(message, type = 'info') {
+        messageArea.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+        setTimeout(() => { messageArea.innerHTML = ''; }, 5000);
+    }
+
+    async function logSmart() {
+        const textInput = document.getElementById('smartInput').value;
+        if (!textInput.trim()) {
+            displayMessage('Smart input field cannot be empty.', 'danger');
+            return;
+        }
+        
+        // For the smart log, if you want to include an emotion,
+        // you'd need to get it from an input field accessible to this function.
+        // The WTForm's emotion field (manual_form.emotion_tag) isn't directly targeted here easily.
+        // Let's assume for now the smart log doesn't automatically pick up the WTForm emotion.
+        // You could add a separate emotion dropdown for the smart log section if desired.
+        const payload = { 
+            text_input: textInput,
+            // emotion_tag: value_from_a_smart_log_specific_emotion_selector // Example
+        };
+        
+        try {
+            // *** THIS IS THE CRITICAL LINE THAT MUST BE CORRECT ***
+            const response = await fetch("{{ url_for('log_expense_json') }}", { 
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            if (response.ok) {
+                displayMessage(result.message || 'Expense logged successfully!', 'success');
+                document.getElementById('smartInput').value = ''; 
+            } else {
+                displayMessage(result.error || 'Failed to log smart expense.', 'danger');
+            }
+        } catch (error) {
+            console.error('Error logging smart expense:', error);
+            displayMessage('An error occurred with smart log. Please try again.', 'danger');
+        }
+    }
+</script>
+{% endblock %}
+
+{% block styles %}
+<style>
+    /* Styles for WTForms rendering, similar to login/register pages */
+    .form-label { display: block; margin-bottom: .5rem; font-weight: bold; }
+    .form-control { /* Basic styling, can be expanded in style.css */
+        width: 100%; padding: .375rem .75rem; font-size: 1rem; 
+        line-height: 1.5; border-radius: .25rem;
+        border: 1px solid var(--input-border); background-color: var(--input-bg); color: var(--text-color);
+        box-sizing: border-box; /* Important for 100% width */
+    }
+    .is-invalid { border-color: #dc3545; }
+    .invalid-feedback { display: block; width: 100%; margin-top: .25rem; font-size: .875em; color: #dc3545;}
+</style>
+{% endblock %}

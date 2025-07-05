@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Expense Tracker{% endblock %}
+
+{% block head_extra %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<h1>My Dashboard</h1>
+<div id="dashboardMessages"></div>
+
+<div class="card">
+    <h2>Spending by Category</h2>
+    <div class="chart-container" style="height:300px; width:auto;"> <canvas id="categoryChart"></canvas>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Spending Over Time</h2>
+     <div class="chart-container" style="height:300px; width:auto;">
+        <canvas id="timeChart"></canvas>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Spending by Emotion</h2>
+     <div class="chart-container" style="height:300px; width:auto;">
+        <canvas id="emotionChart"></canvas>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const dashboardMessages = document.getElementById('dashboardMessages');
+
+    function displayDashboardMessage(message, type = 'info') {
+        dashboardMessages.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+        setTimeout(() => { dashboardMessages.innerHTML = ''; }, 5000);
+    }
+
+    // Chart.js reusable function for fetching data and rendering chart
+    async function renderChart(canvasId, endpoint, chartType, labelSingular, chartOptions = {}) {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        try {
+            const response = await fetch(endpoint);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch data from ${endpoint}: ${response.statusText}`);
+            }
+            const data = await response.json();
+
+            if (!data.labels || data.labels.length === 0) {
+                displayDashboardMessage(`No data available for ${labelSingular} chart.`, 'info');
+                // Optionally display a placeholder on the canvas
+                ctx.font = "16px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText("No data to display", ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return null; // Return null if no chart is rendered
+            }
+            
+            // Common dataset properties
+            const datasetDefaults = {
+                borderWidth: 1
+            };
+             // Default background colors for pie/doughnut/bar
+            const defaultBackgroundColors = [
+                'rgba(255, 99, 132, 0.7)', 'rgba(54, 162, 235, 0.7)', 'rgba(255, 206, 86, 0.7)',
+                'rgba(75, 192, 192, 0.7)', 'rgba(153, 102, 255, 0.7)', 'rgba(255, 159, 64, 0.7)',
+                'rgba(199, 199, 199, 0.7)', 'rgba(83, 102, 255, 0.7)', 'rgba(100, 255, 100, 0.7)'
+            ];
+
+            let chartData = {
+                labels: data.labels,
+                datasets: [{
+                    label: `Total ${labelSingular}`,
+                    data: data.data,
+                    backgroundColor: chartType === 'line' ? 'rgba(75, 192, 192, 0.2)' : defaultBackgroundColors,
+                    borderColor: chartType === 'line' ? 'rgba(75, 192, 192, 1)' : defaultBackgroundColors.map(color => color.replace('0.7', '1')), // Darker border for non-line
+                    fill: chartType === 'line' // Fill for line charts, not for others unless specified
+                }]
+            };
+            
+            // Default options
+            const defaultChartOptions = {
+                responsive: true,
+                maintainAspectRatio: false, // Important for custom container size
+                plugins: {
+                    legend: {
+                        position: chartType === 'pie' || chartType === 'doughnut' ? 'top' : 'bottom',
+                    },
+                    title: {
+                        display: false, // Set to true if you want a title within the chart
+                        // text: `${labelSingular} Overview`
+                    }
+                }
+            };
+            if (chartType === 'bar' || chartType === 'line') {
+                defaultChartOptions.scales = { y: { beginAtZero: true } };
+            }
+
+
+            return new Chart(ctx, {
+                type: chartType,
+                data: chartData,
+                options: {...defaultChartOptions, ...chartOptions} // Merge default with specific options
+            });
+
+        } catch (error) {
+            console.error(`Error rendering ${canvasId}:`, error);
+            displayDashboardMessage(`Could not load ${labelSingular} chart. ${error.message}`, 'danger');
+            ctx.font = "16px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("Error loading chart data", ctx.canvas.width / 2, ctx.canvas.height / 2);
+            return null;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        renderChart('categoryChart', "{{ url_for('spending_by_category_api') }}", 'pie', 'Spending by Category');
+        renderChart('timeChart', "{{ url_for('spending_over_time_api') }}", 'line', 'Spending Over Time');
+        renderChart('emotionChart', "{{ url_for('emotion_spending_api') }}", 'bar', 'Spending by Emotion');
+    });
+</script>
+{% endblock %}

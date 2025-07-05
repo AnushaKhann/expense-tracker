@@ -1,0 +1,366 @@
+/* Basic Reset & Variables */
+:root {
+    --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --border-radius: 5px;
+
+    /* Light Theme (Default) */
+    --background-color-light: #f4f7f6;
+    --text-color-light: #333333;
+    --primary-color-light: #007bff; /* Blue */
+    --secondary-color-light: #6c757d; /* Gray */
+    --accent-color-light: #28a745; /* Green */
+    --card-bg-light: #ffffff;
+    --card-border-light: #e0e0e0;
+    --nav-bg-light: #ffffff;
+    --nav-text-light: #007bff;
+    --button-primary-bg-light: var(--primary-color-light);
+    --button-primary-text-light: #ffffff;
+    --input-bg-light: #ffffff;
+    --input-border-light: #ced4da;
+    --link-color-light: var(--primary-color-light);
+
+    /* Dark Theme */
+    --background-color-dark: #121212; /* Very dark grey */
+    --text-color-dark: #e0e0e0;     /* Light grey text */
+    --primary-color-dark: #1e90ff;  /* Dodger blue */
+    --secondary-color-dark: #adb5bd;/* Lighter Gray for secondary text */
+    --accent-color-dark: #32cd32;   /* Lime green */
+    --card-bg-dark: #1e1e1e;        /* Darker card background */
+    --card-border-dark: #333333;
+    --nav-bg-dark: #1e1e1e;
+    --nav-text-dark: var(--primary-color-dark);
+    --button-primary-bg-dark: var(--primary-color-dark);
+    --button-primary-text-dark: #ffffff;
+    --input-bg-dark: #2c2c2c;
+    --input-border-dark: #444444;
+    --link-color-dark: var(--primary-color-dark);
+
+    /* Default to light theme variables */
+    --bg-color: var(--background-color-light);
+    --text-color: var(--text-color-light);
+    --primary-color: var(--primary-color-light);
+    --secondary-color: var(--secondary-color-light);
+    --accent-color: var(--accent-color-light);
+    --card-bg: var(--card-bg-light);
+    --card-border: var(--card-border-light);
+    --nav-bg: var(--nav-bg-light);
+    --nav-text: var(--nav-text-light);
+    --button-primary-bg: var(--button-primary-bg-light);
+    --button-primary-text: var(--button-primary-text-light);
+    --input-bg: var(--input-bg-light);
+    --input-border: var(--input-border-light);
+    --link-color: var(--link-color-light);
+}
+
+body {
+    font-family: var(--font-family);
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body.dark-mode {
+    --bg-color: var(--background-color-dark);
+    --text-color: var(--text-color-dark);
+    --primary-color: var(--primary-color-dark);
+    --secondary-color: var(--secondary-color-dark);
+    --accent-color: var(--accent-color-dark);
+    --card-bg: var(--card-bg-dark);
+    --card-border: var(--card-border-dark);
+    --nav-bg: var(--nav-bg-dark);
+    --nav-text: var(--nav-text-dark);
+    --button-primary-bg: var(--button-primary-bg-dark);
+    --button-primary-text: var(--button-primary-text-dark);
+    --input-bg: var(--input-bg-dark);
+    --input-border: var(--input-border-dark);
+    --link-color: var(--link-color-dark);
+}
+
+/* Navigation */
+nav {
+    background-color: var(--nav-bg);
+    padding: 0.8rem 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-bottom: 1px solid var(--card-border);
+}
+.nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.nav-brand {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--nav-text);
+    text-decoration: none;
+}
+.nav-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+}
+.nav-links li {
+    margin-left: 20px;
+}
+.nav-links a {
+    text-decoration: none;
+    color: var(--text-color);
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+.nav-links a:hover, .nav-links a.active {
+    color: var(--primary-color);
+}
+#theme-toggle-button {
+    background: none;
+    border: 1px solid var(--text-color);
+    color: var(--text-color);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: var(--border-radius);
+    transition: background-color 0.2s, color 0.2s;
+}
+#theme-toggle-button:hover {
+    background-color: var(--text-color);
+    color: var(--bg-color);
+}
+
+
+/* Main Container */
+.container {
+    max-width: 1100px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: var(--card-bg); /* Give main content area a card-like bg */
+    border-radius: var(--border-radius);
+    box-shadow: 0 0 15px rgba(0,0,0,0.05);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: var(--text-color);
+    margin-top: 0;
+}
+h1 { font-size: 2rem; margin-bottom: 1rem; }
+h2 { font-size: 1.75rem; margin-bottom: 0.8rem; border-bottom: 1px solid var(--card-border); padding-bottom: 0.5rem;}
+h3 { font-size: 1.5rem; margin-bottom: 0.6rem; }
+
+/* Forms */
+form div {
+    margin-bottom: 15px;
+}
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="month"],
+input[type="email"],
+input[type="password"],
+select,
+textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--input-border);
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    border-radius: var(--border-radius);
+    box-sizing: border-box; /* Important for 100% width */
+}
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25); /* Corresponds to primary color */
+}
+.dark-mode input:focus, .dark-mode select:focus, .dark-mode textarea:focus {
+    box-shadow: 0 0 0 0.2rem rgba(30,144,255,.25); /* Corresponds to primary color dark */
+}
+
+button, .button {
+    background-color: var(--button-primary-bg);
+    color: var(--button-primary-text);
+    padding: 10px 15px;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s ease;
+    text-decoration: none; /* For .button class used on <a> tags */
+    display: inline-block; /* For .button class */
+}
+button:hover, .button:hover {
+    opacity: 0.9;
+}
+button.secondary, .button.secondary {
+    background-color: var(--secondary-color);
+}
+button.danger, .button.danger {
+    background-color: #dc3545; /* Red for danger */
+}
+.dark-mode button.danger, .dark-mode .button.danger {
+    background-color: #ff4d4d;
+}
+
+
+/* Cards */
+.card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+th, td {
+    text-align: left;
+    padding: 12px;
+    border-bottom: 1px solid var(--card-border);
+}
+th {
+    background-color: var(--input-bg); /* Subtle background for headers */
+}
+body.dark-mode th {
+    background-color: #2c2c2c;
+}
+
+/* Utility Classes */
+.text-center { text-align: center; }
+.mt-1 { margin-top: 0.5rem; }
+.mt-2 { margin-top: 1rem; }
+.mb-1 { margin-bottom: 0.5rem; }
+.mb-2 { margin-bottom: 1rem; }
+.d-flex { display: flex; }
+.justify-between { justify-content: space-between; }
+.align-center { align-items: center; }
+
+/* Alerts */
+.alert {
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid transparent;
+    border-radius: var(--border-radius);
+}
+.alert-success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
+.dark-mode .alert-success {
+    color: #c3e6cb;
+    background-color: #1c4a24;
+    border-color: #2a5c31;
+}
+.alert-danger {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+.dark-mode .alert-danger {
+    color: #f5c6cb;
+    background-color: #602025;
+    border-color: #721c24;
+}
+.alert-info {
+    color: #0c5460;
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+}
+.dark-mode .alert-info {
+    color: #bee5eb;
+    background-color: #114a53;
+    border-color: #0c5460;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    padding: 20px;
+    margin-top: 30px;
+    border-top: 1px solid var(--card-border);
+    font-size: 0.9em;
+    color: var(--secondary-color);
+}
+
+/* Progress Bar for Goals */
+.progress-bar-container {
+    width: 100%;
+    background-color: var(--input-border); /* Light grey background for the track */
+    border-radius: var(--border-radius);
+    height: 25px;
+    overflow: hidden; /* Ensures the inner bar respects the border radius */
+}
+.progress-bar {
+    background-color: var(--accent-color); /* Green for progress */
+    height: 100%;
+    line-height: 25px; /* Vertically center text */
+    color: white;
+    text-align: center;
+    font-weight: bold;
+    transition: width 0.5s ease-in-out;
+    border-radius: var(--border-radius) 0 0 var(--border-radius); /* Keep left radius */
+}
+.progress-bar.full {
+     border-radius: var(--border-radius); /* Full radius when 100% */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .nav-links {
+        display: none; /* Simple hide for small screens, could be a burger menu */
+    }
+    .nav-container {
+        /* Adjust if needed for small screens */
+    }
+    .container {
+        margin: 10px;
+        padding: 15px;
+    }
+    h1 {font-size: 1.8rem;}
+    h2 {font-size: 1.5rem;}
+}
+
+/* Specific Page Styles (add as needed) */
+#smartInput { margin-bottom: 10px; }
+#manualLogForm > div { margin-bottom: 10px;}
+#emotionSelector { margin-top: 10px; }
+.chart-container {
+    position: relative;
+    margin: auto;
+    height: 40vh; /* Responsive height */
+    width: 80vw;  /* Responsive width */
+    max-width: 600px; /* Max width for larger screens */
+    margin-bottom: 30px;
+}
+
+#budgetStatusContainer .card, #goalsList .card, #timelineContainer .card {
+    margin-bottom: 15px;
+}
+.pagination {
+    margin-top: 20px;
+    text-align: center;
+}
+.pagination button {
+    margin: 0 5px;
+}
+#budgetFilter {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}

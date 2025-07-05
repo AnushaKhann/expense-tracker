@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="text-center">
+    <h1>Welcome to Your Expense Tracker</h1>
+    <p>Manage your finances effectively. Log expenses, set budgets, track goals, and gain insights.</p>
+    <a href="{{ url_for('add_expense_page') }}" class="button mt-1">Log New Expense</a>
+    <a href="{{ url_for('dashboard') }}" class="button secondary mt-1">View Dashboard</a>
+</div>
+
+<section id="recent-expenses" class="mt-2">
+    <h2>Recent Expenses</h2>
+    {% if expenses %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for expense in expenses %}
+                <tr>
+                    <td>{{ expense.date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ expense.description }}</td>
+                    <td>{{ expense.category }}</td>
+                    <td>₹{{ "%.2f"|format(expense.amount) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No expenses logged yet. <a href="{{ url_for('add_expense_page') }}">Add your first one!</a></p>
+    {% endif %}
+</section>
+{% endblock %}

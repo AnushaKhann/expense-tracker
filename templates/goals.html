@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Financial Goals - Expense Tracker{% endblock %}
+
+{% block content %}
+<h1>Financial Goals</h1>
+<div id="goalMessages"></div>
+
+<div class="card">
+    <h2>Set New Goal</h2>
+    <form id="goalForm">
+        <div>
+            <label for="goalName">Goal Name:</label>
+            <input type="text" id="goalName" placeholder="e.g., Emergency Fund, New Car" required>
+        </div>
+        <div>
+            <label for="goalTargetAmount">Target Amount (₹):</label>
+            <input type="number" id="goalTargetAmount" placeholder="e.g., 50000" step="0.01" required>
+        </div>
+         <div>
+            <label for="goalCurrentAmount">Current Amount Saved (₹) (Optional):</label>
+            <input type="number" id="goalCurrentAmount" placeholder="e.g., 1000" step="0.01">
+        </div>
+        <div>
+            <label for="goalDueDate">Target Date (Optional):</label>
+            <input type="date" id="goalDueDate">
+        </div>
+        <button type="button" onclick="setNewGoal()" class="button">Set Goal</button>
+    </form>
+</div>
+
+<div class="card mt-2">
+    <h2>My Goals</h2>
+    <div id="goalsListContainer">
+        <p>Loading goals...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const goalMessages = document.getElementById('goalMessages');
+    const goalsListContainer = document.getElementById('goalsListContainer');
+
+    function displayGoalMessage(message, type = 'info') {
+        goalMessages.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+        setTimeout(() => { goalMessages.innerHTML = ''; }, 5000);
+    }
+
+    async function setNewGoal() {
+        const name = document.getElementById('goalName').value;
+        const targetAmount = document.getElementById('goalTargetAmount').value;
+        const currentAmount = document.getElementById('goalCurrentAmount').value;
+        const dueDate = document.getElementById('goalDueDate').value;
+
+        if (!name || !targetAmount) {
+            displayGoalMessage('Goal Name and Target Amount are required.', 'danger');
+            return;
+        }
+        if (parseFloat(targetAmount) <= 0) {
+             displayGoalMessage('Target Amount must be positive.', 'danger');
+            return;
+        }
+         if (currentAmount && parseFloat(currentAmount) < 0) {
+             displayGoalMessage('Current Amount cannot be negative.', 'danger');
+            return;
+        }
+
+        const payload = {
+            name: name,
+            target_amount: parseFloat(targetAmount),
+            current_amount: currentAmount ? parseFloat(currentAmount) : 0.0,
+            due_date: dueDate || null
+        };
+
+        try {
+            const response = await fetch("{{ url_for('set_goal') }}", {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            if (response.ok) {
+                displayGoalMessage(result.message, 'success');
+                document.getElementById('goalForm').reset();
+                loadGoals();
+            } else {
+                displayGoalMessage(result.error || 'Failed to set goal.', 'danger');
+            }
+        } catch (error) {
+            console.error('Error setting goal:', error);
+            displayGoalMessage('An error occurred. Please try again.', 'danger');
+        }
+    }
+
+    async function loadGoals() {
+        goalsListContainer.innerHTML = '<p>Loading goals...</p>';
+        try {
+            const response = await fetch("{{ url_for('get_goals_api') }}");
+            if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+            const goals = await response.json();
+
+            if (goals.length === 0) {
+                goalsListContainer.innerHTML = '<p>No goals set yet. Why not add one now?</p>';
+                return;
+            }
+
+            let html = '';
+            goals.forEach(g => {
+                const progress = g.target_amount > 0 ? (g.current_amount / g.target_amount) * 100 : 0;
+                const progressClamped = Math.min(Math.max(progress, 0), 100);
+
+                html += `
+                    <div class="card">
+                        <h3>${g.name}</h3>
+                        <p><strong>Target:</strong> ₹${g.target_amount.toFixed(2)} | <strong>Saved:</strong> ₹${g.current_amount.toFixed(2)}</p>
+                        <div class="progress-bar-container" title="${progress.toFixed(1)}% complete">
+                            <div class="progress-bar ${progressClamped >= 100 ? 'full' : ''}" style="width: ${progressClamped.toFixed(2)}%;">
+                                ${progress.toFixed(1)}%
+                            </div>
+                        </div>
+                        ${g.due_date ? `<p><strong>Target Date:</strong> ${new Date(g.due_date + 'T00:00:00').toLocaleDateString()}</p>` : ''}
+                        ${g.created_at ? `<p><em>Goal set on: ${new Date(g.created_at).toLocaleDateString()}</em></p>`: ''}
+                        
+                        ${ g.current_amount < g.target_amount ? `
+                        <div class="mt-1 d-flex align-center" style="gap: 10px;">
+                            <input type="number" id="contribAmount-${g.id}" placeholder="Contribute Amount (₹)" step="0.01" style="flex-grow: 1; max-width: 200px;">
+                            <button onclick="contributeToGoal(${g.id})" class="button secondary">Contribute</button>
+                        </div>
+                        ` : `<p style="color: var(--accent-color); font-weight: bold;">🎉 Goal Achieved! 🎉</p>`}
+                    </div>
+                `;
+            });
+            goalsListContainer.innerHTML = html;
+
+        } catch (error) {
+            console.error('Error loading goals:', error);
+            goalsListContainer.innerHTML = `<p class="alert alert-danger">Could not load goals: ${error.message}</p>`;
+        }
+    }
+
+    async function contributeToGoal(goalId) {
+        const amountInput = document.getElementById(`contribAmount-${goalId}`);
+        const amount = amountInput.value;
+
+        if (!amount || parseFloat(amount) <= 0) {
+            displayGoalMessage('Please enter a valid positive amount to contribute.', 'danger');
+            return;
+        }
+
+        // **MODIFIED URL CONSTRUCTION HERE**
+        const url = `/contribute_to_goal/${goalId}`; // Construct URL directly
+
+        try {
+            const response = await fetch(url, { // Use the directly constructed URL
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ amount: parseFloat(amount) })
+            });
+            const result = await response.json();
+            if (response.ok) {
+                displayGoalMessage(result.message, 'success');
+                amountInput.value = ''; // Clear input
+                loadGoals(); // Refresh goals list
+            } else {
+                displayGoalMessage(result.error || 'Failed to contribute to goal.', 'danger');
+            }
+        } catch (error) {
+            console.error('Error contributing to goal:', error);
+            displayGoalMessage('An error occurred. Please try again.', 'danger');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadGoals);
+</script>
+{% endblock %}
