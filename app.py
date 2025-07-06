@@ -98,7 +98,6 @@ class Goal(db.Model):
 # --- Create Tables at Startup ---
 @app.route('/init-db')
 def init_db():
-    from app import db
     db.create_all()
     return "Tables created!"
 
