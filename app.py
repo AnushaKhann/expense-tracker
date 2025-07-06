@@ -15,8 +15,8 @@ app = Flask(__name__)
 # Define basedir first, before it's used in app.config
 basedir = os.path.abspath(os.path.dirname(__file__))
 
-app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'your_fallback_very_secret_key_for_csrf') # Use environment variable or fallback
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'expenses.db')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')  # Use secure key in production
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///expenses.db') # Use environment variable or fallback to SQLite
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
