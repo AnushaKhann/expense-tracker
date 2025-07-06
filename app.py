@@ -96,10 +96,10 @@ class Goal(db.Model):
        return data
 
 # --- Create Tables at Startup ---
-@app.before_first_request
-def create_tables():
+@app.route('/init-db')
+def init_db():
     db.create_all()
-    print("✅ Tables created at app startup.")
+    return "Tables created!"
 
 # Flask-Login user loader
 @login_manager.user_loader
