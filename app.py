@@ -1,3 +1,6 @@
+
+from dotenv import load_dotenv
+load_dotenv()
 from flask import Flask, request, jsonify, render_template, redirect, url_for, flash
 import datetime
 from collections import defaultdict
@@ -15,7 +18,7 @@ app = Flask(__name__)
 # Define basedir first, before it's used in app.config
 basedir = os.path.abspath(os.path.dirname(__file__))
 
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')  # Use secure key in production
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'fallback-key')  # Use secure key in production
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///expenses.db') # Use environment variable or fallback to SQLite
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
