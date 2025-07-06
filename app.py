@@ -429,9 +429,9 @@ def expenses_timeline_api():
         "has_next": pagination.has_next, "has_prev": pagination.has_prev })
 
 
-if __name__ == '__main__':
-    # Remember to run Flask-Migrate commands from your terminal:
-    # flask db init (first time only)
-    # flask db migrate -m "Initial migration"
-    # flask db upgrade
-    app.run(debug=True)
+# if __name__ == '__main__':
+#     # Remember to run Flask-Migrate commands from your terminal:
+#     # flask db init (first time only)
+#     # flask db migrate -m "Initial migration"
+#     # flask db upgrade
+#     app.run(debug=True)
