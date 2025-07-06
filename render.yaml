@@ -1,7 +1,7 @@
 services:
   - type: web
     name: expense-tracker
-    runtime: python  # ✅ This sets the Python environment
+    env: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
     envVars:
