@@ -95,6 +95,12 @@ class Goal(db.Model):
        if isinstance(data.get('created_at'), datetime.datetime): data['created_at'] = data['created_at'].isoformat()
        return data
 
+# --- Create Tables at Startup ---
+@app.before_first_request
+def create_tables():
+    db.create_all()
+    print("✅ Tables created at app startup.")
+
 # Flask-Login user loader
 @login_manager.user_loader
 def load_user(user_id):
