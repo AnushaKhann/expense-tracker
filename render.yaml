@@ -1,12 +1,9 @@
 services:
   - type: web
     name: expense-tracker
-    env: python
+    runtime: python  # ✅ This sets the Python environment
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
-    build:
-      environment:
-        pythonVersion: '3.11'
     envVars:
       - name: SECRET_KEY
         value: '7f47ac2f4aa43d9859e08a6db15f9fc1db17ed96b5a877fc2f0a9f5ea85aabc7'
