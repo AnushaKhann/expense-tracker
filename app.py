@@ -22,7 +22,14 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'fallback-key')  # Use s
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///expenses.db') # Use environment variable or fallback to SQLite
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app)
+# Add these engine options
+engine_options = {
+    "pool_pre_ping": True,
+    "pool_recycle": 299,
+}
+
+# Pass the options to SQLAlchemy
+db = SQLAlchemy(app, engine_options=engine_options)
 migrate = Migrate(app, db)
 
 # --- Flask-Login Configuration ---
