@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t.edit_expense.title }} - {{ t.app_name }}{% endblock %}
+
+{% block content %}
+<h1>{{ t.edit_expense.title }}</h1>
+
+<div class="card">
+    <h2>{{ t.edit_expense.subtitle }}</h2>
+    <form method="POST" action="{{ url_for('edit_expense_submit', expense_id=expense.id) }}" novalidate>
+        {{ form.csrf_token }}
+        
+        <div>
+            {{ form.amount.label(class="form-label") }}
+            {% if form.amount.errors %}
+                {{ form.amount(class="form-control is-invalid", step="0.01") }}
+                <div class="invalid-feedback">
+                    {% for error in form.amount.errors %}<span>{{ error }}</span>{% endfor %}
+                </div>
+            {% else %}
+                {{ form.amount(class="form-control", step="0.01") }}
+            {% endif %}
+        </div>
+
+        <div class="mt-1">
+            {{ form.category.label(class="form-label") }}
+            {% if form.category.errors %}
+                {{ form.category(class="form-control is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in form.category.errors %}<span>{{ error }}</span>{% endfor %}
+                </div>
+            {% else %}
+                {{ form.category(class="form-control") }}
+            {% endif %}
+        </div>
+
+        <div class="mt-1">
+            {{ form.description.label(class="form-label") }}
+            {% if form.description.errors %}
+                {{ form.description(class="form-control is-invalid", rows="3") }}
+                <div class="invalid-feedback">
+                    {% for error in form.description.errors %}<span>{{ error }}</span>{% endfor %}
+                </div>
+            {% else %}
+                {{ form.description(class="form-control", rows="3") }}
+            {% endif %}
+        </div>
+
+        <div class="mt-1">
+            {{ form.merchant.label(class="form-label") }}
+            {% if form.merchant.errors %}
+                {{ form.merchant(class="form-control is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in form.merchant.errors %}<span>{{ error }}</span>{% endfor %}
+                </div>
+            {% else %}
+                {{ form.merchant(class="form-control") }}
+            {% endif %}
+        </div>
+
+        <div class="mt-1">
+            {{ form.date.label(class="form-label") }}
+            {% if form.date.errors %}
+                {{ form.date(class="form-control is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in form.date.errors %}<span>{{ error }}</span>{% endfor %}
+                </div>
+            {% else %}
+                {{ form.date(class="form-control") }}
+            {% endif %}
+        </div>
+        
+        <div class="mt-1">
+            {{ form.emotion_tag.label(class="form-label") }}
+            {% if form.emotion_tag.errors %}
+                {{ form.emotion_tag(class="form-control is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in form.emotion_tag.errors %}<span>{{ error }}</span>{% endfor %}
+                </div>
+            {% else %}
+                {{ form.emotion_tag(class="form-control") }}
+            {% endif %}
+        </div>
+
+        <div class="mt-2">
+            {{ form.submit(value=t.edit_expense.update_button, class="button") }}
+            <a href="{{ url_for('index') }}" class="button secondary">{{ t.edit_expense.cancel }}</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

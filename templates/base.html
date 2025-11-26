@@ -1,38 +1,71 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ current_language }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Expense Tracker{% endblock %}</title>
+    <title>{% block title %}{{ t.app_name }}{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block head_extra %}{% endblock %}
     {% block styles %}{% endblock %} </head>
 <body>
     <nav>
         <div class="nav-container">
-            <a href="{{ url_for('index') }}" class="nav-brand">ExpenseTracker</a>
+            <a href="{{ url_for('index') }}" class="nav-brand">{{ t.app_name }}</a>
             <ul class="nav-links">
                 {% if current_user.is_authenticated %}
-                    <li><a href="{{ url_for('index') }}">Home</a></li>
-                    <li><a href="{{ url_for('add_expense_page') }}">Add Expense</a></li>
-                    <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-                    <li><a href="{{ url_for('budget_page') }}">Budgets</a></li>
-                    <li><a href="{{ url_for('goals_page') }}">Goals</a></li>
-                    <li><a href="{{ url_for('timeline_page') }}">Timeline</a></li>
+                    <li><a href="{{ url_for('index') }}">{{ t.navbar.home }}</a></li>
+                    <li><a href="{{ url_for('add_expense_page') }}">{{ t.navbar.add_expense }}</a></li>
+                    <li><a href="{{ url_for('dashboard') }}">{{ t.navbar.dashboard }}</a></li>
+                    <li><a href="{{ url_for('budget_page') }}">{{ t.navbar.budget }}</a></li>
+                    <li><a href="{{ url_for('goals_page') }}">{{ t.navbar.goals }}</a></li>
+                    <li><a href="{{ url_for('timeline_page') }}">{{ t.navbar.timeline }}</a></li>
                 {% endif %}
             </ul>
             <div class="nav-auth">
                 {% if current_user.is_authenticated %}
-                    <span class="nav-user">Hi, {{ current_user.username }}!</span>
-                    <a href="{{ url_for('logout') }}" class="button secondary small-button">Logout</a>
+                    <span class="nav-user">{{ t.navbar.home }}, {{ current_user.username }}!</span>
+                    <div class="language-switcher">
+                        <button id="language-dropdown-btn" class="language-btn" type="button">
+                            🌐 {{ current_language|upper }}
+                        </button>
+                        <div id="language-dropdown" class="language-dropdown">
+                            <a href="{{ url_for('set_language', lang='en') }}" class="{% if current_language == 'en' %}active{% endif %}">
+                                English
+                            </a>
+                            <a href="{{ url_for('set_language', lang='hi') }}" class="{% if current_language == 'hi' %}active{% endif %}">
+                                हिन्दी (Hindi)
+                            </a>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('logout') }}" class="button secondary small-button">{{ t.navbar.logout }}</a>
                 {% else %}
-                    <a href="{{ url_for('login') }}" class="button secondary small-button">Login</a>
-                    <a href="{{ url_for('register') }}" class="button small-button">Register</a>
+                    <a href="{{ url_for('login') }}" class="button secondary small-button">{{ t.navbar.login }}</a>
+                    <a href="{{ url_for('register') }}" class="button small-button">{{ t.navbar.register }}</a>
                 {% endif %}
                  <button id="theme-toggle-button" aria-label="Toggle theme">🌓</button>
             </div>
         </div>
     </nav>
+
+    <!-- Language Selection Modal -->
+    {% if current_user.is_authenticated %}
+    <div id="languageModal" class="modal">
+        <div class="modal-content">
+            <h2>{{ t.language.choose }} / भाषा चुनें</h2>
+            <p style="margin-bottom: 1.5rem; color: var(--secondary-color);">Please select your preferred language</p>
+            <div class="language-options">
+                <a href="{{ url_for('set_language', lang='en') }}" class="language-option {% if current_language == 'en' %}selected{% endif %}">
+                    <div class="language-flag">🇬🇧</div>
+                    <div class="language-name">{{ t.language.english }}</div>
+                </a>
+                <a href="{{ url_for('set_language', lang='hi') }}" class="language-option {% if current_language == 'hi' %}selected{% endif %}">
+                    <div class="language-flag">🇮🇳</div>
+                    <div class="language-name">{{ t.language.hindi }}</div>
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <main class="container">
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -76,6 +109,36 @@
             applyTheme(newTheme);
             localStorage.setItem('theme', newTheme);
         });
+
+        // Language Modal
+        {% if current_user.is_authenticated %}
+        const languageModal = document.getElementById('languageModal');
+        
+        // Check if language was already selected
+        fetch("{{ url_for('check_language_preference') }}")
+            .then(response => response.json())
+            .then(data => {
+                if (!data.language_selected) {
+                    languageModal.style.display = 'flex';
+                }
+            });
+
+        // Language dropdown toggle
+        const langDropdownBtn = document.getElementById('language-dropdown-btn');
+        const langDropdown = document.getElementById('language-dropdown');
+        
+        if (langDropdownBtn) {
+            langDropdownBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                langDropdown.classList.toggle('show');
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', () => {
+                langDropdown.classList.remove('show');
+            });
+        }
+        {% endif %}
     </script>
     {% block scripts %}{% endblock %}
 </body>

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}Login - Expense Tracker{% endblock %}
+{% block title %}{{ t.auth.login_title }} - {{ t.app_name }}{% endblock %}
 
 {% block content %}
 <div class="card auth-form">
-    <h2>Login to Your Account</h2>
+    <h2>{{ t.auth.login_title }}</h2>
     <form method="POST" action="{{ url_for('login') }}{{ '?next=' + request.args.get('next', '') if request.args.get('next') else '' }}" novalidate>
         {{ form.csrf_token }} {# CSRF protection token #}
         
@@ -43,10 +43,10 @@
             </div>
         
         <div class="mt-2">
-            {{ form.submit(class="button") }}
+            {{ form.submit(class="button", value=t.auth.login_button) }}
         </div>
     </form>
-    <p class="mt-1 text-center">Don't have an account? <a href="{{ url_for('register') }}">Sign Up</a></p>
+    <p class="mt-1 text-center">Don't have an account? <a href="{{ url_for('register') }}">{{ t.auth.register_button }}</a></p>
 </div>
 {% endblock %}
 

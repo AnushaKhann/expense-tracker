@@ -1,10 +1,11 @@
 
 from dotenv import load_dotenv
 load_dotenv()
-from flask import Flask, request, jsonify, render_template, redirect, url_for, flash
+from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, session
 import datetime
 from collections import defaultdict
 import os
+import json
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -113,6 +114,36 @@ def init_db():
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+# --- Load Translations ---
+def load_translations():
+    with open(os.path.join(basedir, 'translations.json'), 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+translations = load_translations()
+
+# --- Language Helper Function ---
+def get_language():
+    return session.get('language', 'en')
+
+def get_translation(key_path):
+    """Get translation for a key path like 'navbar.home'"""
+    lang = get_language()
+    keys = key_path.split('.')
+    value = translations.get(lang, translations['en'])
+    for key in keys:
+        value = value.get(key, key_path)
+    return value
+
+# Context processor to make translations available in all templates
+@app.context_processor
+def inject_translations():
+    lang = get_language()
+    return {
+        't': translations.get(lang, translations['en']),
+        'current_language': lang,
+        'get_translation': get_translation
+    }
+
 # --- Static Data ---
 # Renamed to avoid conflict with potential form fields if they were named categories_db
 categories_db_static_list = ["Groceries", "Transport", "Entertainment", "Utilities", "Dining", "Shopping", "Health", "Travel", "Education", "Savings Goal", "Other"]
@@ -176,26 +207,42 @@ def login():
         user = User.query.filter_by(email=form.email.data).first()
         if user and user.check_password(form.password.data):
             login_user(user, remember=form.remember.data)
-            flash(f'Welcome back, {user.username}!', 'success')
+            # Clear language selection on new login to show modal
+            session.pop('language_selected', None)
+            flash(f'{get_translation("auth.welcome_back")}, {user.username}!', 'success')
             next_page = request.args.get('next')
             return redirect(next_page) if next_page else redirect(url_for('index'))
         else:
-            flash('Login Unsuccessful. Please check email and password.', 'danger')
+            flash(get_translation('auth.login_failed'), 'danger')
     return render_template('login.html', title='Login', form=form)
 
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
-    flash('You have been logged out.', 'info')
+    flash(get_translation('auth.logout_message'), 'info')
     return redirect(url_for('login'))
+
+# --- Language Routes ---
+@app.route('/set_language/<lang>')
+def set_language(lang):
+    if lang in ['en', 'hi']:
+        session['language'] = lang
+        session['language_selected'] = True
+    return redirect(request.referrer or url_for('index'))
+
+@app.route('/check_language_preference')
+@login_required
+def check_language_preference():
+    """Check if user has selected a language"""
+    return jsonify({
+        'language_selected': session.get('language_selected', False),
+        'current_language': get_language()
+    })
 
 # --- Application Routes ---
 @app.route('/')
 def index():
-    if current_user.is_authenticated:
-        latest_expenses_query = Expense.query.filter_by(user_id=current_user.id).order_by(Expense.date.desc(), Expense.id.desc()).limit(5).all()
-        return render_template('index.html', expenses=latest_expenses_query)
     return render_template('index.html') 
 
 # Page to display both smart log input and the WTForm for manual expense logging
@@ -440,6 +487,83 @@ def expenses_timeline_api():
         "expenses": expenses_on_page, "total_items": pagination.total, "current_page": pagination.page,
         "per_page": pagination.per_page, "total_pages": pagination.pages,
         "has_next": pagination.has_next, "has_prev": pagination.has_prev })
+
+# API endpoint to get available months with expenses
+@app.route('/api/available_months')
+@login_required
+def available_months_api():
+    # Get distinct months from user's expenses
+    months_query = db.session.query(
+        db.extract('year', Expense.date).label('year'),
+        db.extract('month', Expense.date).label('month')
+    ).filter_by(user_id=current_user.id).distinct().order_by(
+        db.desc('year'), db.desc('month')
+    ).all()
+    
+    months_list = [{"year": int(row.year), "month": int(row.month)} for row in months_query]
+    return jsonify(months_list)
+
+# API endpoint to get expenses for a specific month
+@app.route('/api/expenses_by_month')
+@login_required
+def expenses_by_month_api():
+    month = request.args.get('month', type=int)
+    year = request.args.get('year', type=int)
+    
+    if not month or not year:
+        # Default to current month
+        now = datetime.datetime.now()
+        month = now.month
+        year = now.year
+    
+    expenses = Expense.query.filter(
+        Expense.user_id == current_user.id,
+        db.extract('month', Expense.date) == month,
+        db.extract('year', Expense.date) == year
+    ).order_by(Expense.date.desc(), Expense.id.desc()).all()
+    
+    return jsonify([exp.as_dict() for exp in expenses])
+
+# Route to display edit expense page
+@app.route('/edit_expense/<int:expense_id>', methods=['GET'])
+@login_required
+def edit_expense_page(expense_id):
+    expense = Expense.query.filter_by(id=expense_id, user_id=current_user.id).first_or_404()
+    form = ExpenseForm(obj=expense)
+    form.category.choices = [(c, c) for c in categories_db_static_list]
+    return render_template('edit_expense.html', form=form, expense=expense)
+
+# Route to submit edited expense
+@app.route('/edit_expense/<int:expense_id>', methods=['POST'])
+@login_required
+def edit_expense_submit(expense_id):
+    expense = Expense.query.filter_by(id=expense_id, user_id=current_user.id).first_or_404()
+    form = ExpenseForm()
+    form.category.choices = [(c, c) for c in categories_db_static_list]
+    
+    if form.validate_on_submit():
+        expense.amount = form.amount.data
+        expense.category = form.category.data
+        expense.description = form.description.data
+        expense.merchant = form.merchant.data
+        expense.date = form.date.data
+        expense.emotion_tag = form.emotion_tag.data if form.emotion_tag.data else None
+        db.session.commit()
+        flash('Expense updated successfully!', 'success')
+        return redirect(url_for('index'))
+    else:
+        flash('Error updating expense. Please check the fields.', 'danger')
+        return render_template('edit_expense.html', form=form, expense=expense)
+
+# Route to delete an expense
+@app.route('/delete_expense/<int:expense_id>', methods=['POST'])
+@login_required
+def delete_expense(expense_id):
+    expense = Expense.query.filter_by(id=expense_id, user_id=current_user.id).first_or_404()
+    db.session.delete(expense)
+    db.session.commit()
+    flash('Expense deleted successfully!', 'success')
+    return redirect(url_for('index'))
 
 
 # if __name__ == '__main__':

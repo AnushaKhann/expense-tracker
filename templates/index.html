@@ -4,37 +4,184 @@
 
 {% block content %}
 <div class="text-center">
-    <h1>Welcome to Your Expense Tracker</h1>
-    <p>Manage your finances effectively. Log expenses, set budgets, track goals, and gain insights.</p>
-    <a href="{{ url_for('add_expense_page') }}" class="button mt-1">Log New Expense</a>
-    <a href="{{ url_for('dashboard') }}" class="button secondary mt-1">View Dashboard</a>
+    <h1>{{ t.home.welcome }}</h1>
+    <p>{{ t.home.subtitle }}</p>
+    <a href="{{ url_for('add_expense_page') }}" class="button mt-1">{{ t.home.log_new_expense }}</a>
+    <a href="{{ url_for('dashboard') }}" class="button secondary mt-1">{{ t.home.view_dashboard }}</a>
 </div>
 
 <section id="recent-expenses" class="mt-2">
-    <h2>Recent Expenses</h2>
-    {% if expenses %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Description</th>
-                    <th>Category</th>
-                    <th>Amount</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for expense in expenses %}
-                <tr>
-                    <td>{{ expense.date.strftime('%Y-%m-%d') }}</td>
-                    <td>{{ expense.description }}</td>
-                    <td>{{ expense.category }}</td>
-                    <td>₹{{ "%.2f"|format(expense.amount) }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>No expenses logged yet. <a href="{{ url_for('add_expense_page') }}">Add your first one!</a></p>
-    {% endif %}
+    <h2>{{ t.home.recent_expenses }}</h2>
+    <div class="mt-1 mb-1">
+        <label for="monthSelector"><strong>{{ t.home.view_expenses_for }}</strong></label>
+        <select id="monthSelector" onchange="loadExpensesForMonth()">
+            <option value="">{{ t.home.loading_months }}</option>
+        </select>
+    </div>
+    <div id="expensesMessages"></div>
+    <div id="expensesContainer">
+        <p>{{ t.home.loading_expenses }}</p>
+    </div>
 </section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const monthSelector = document.getElementById('monthSelector');
+    const expensesContainer = document.getElementById('expensesContainer');
+    const expensesMessages = document.getElementById('expensesMessages');
+
+    const monthNames = ["January", "February", "March", "April", "May", "June",
+                        "July", "August", "September", "October", "November", "December"];
+
+    // Translations
+    const t = {
+        loading: "{{ t.home.loading_expenses }}",
+        noExpensesYet: "{{ t.home.no_expenses_yet }}",
+        noExpensesMonth: "{{ t.home.no_expenses_month }}",
+        addOne: "{{ t.home.add_one }}",
+        date: "{{ t.home.date }}",
+        description: "{{ t.home.description }}",
+        category: "{{ t.home.category }}",
+        merchant: "{{ t.home.merchant }}",
+        amount: "{{ t.home.amount }}",
+        actions: "{{ t.home.actions }}",
+        edit: "{{ t.home.edit }}",
+        delete: "{{ t.home.delete }}",
+        deleteConfirm: "{{ t.home.delete_confirm }}"
+    };
+
+    function displayExpensesMessage(message, type = 'info') {
+        expensesMessages.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+        setTimeout(() => { expensesMessages.innerHTML = ''; }, 5000);
+    }
+
+    async function loadAvailableMonths() {
+        try {
+            const response = await fetch("{{ url_for('available_months_api') }}");
+            if (!response.ok) throw new Error('Failed to fetch available months');
+            
+            const months = await response.json();
+            monthSelector.innerHTML = '';
+            
+            if (months.length === 0) {
+                monthSelector.innerHTML = `<option value="">${t.noExpensesYet}</option>`;
+                expensesContainer.innerHTML = `<p>${t.noExpensesYet}. <a href="{{ url_for("add_expense_page") }}">${t.addOne}</a></p>`;
+                return;
+            }
+
+            // Add current month as default
+            const now = new Date();
+            const currentMonth = now.getMonth() + 1;
+            const currentYear = now.getFullYear();
+            const currentOption = document.createElement('option');
+            currentOption.value = `${currentYear}-${currentMonth}`;
+            currentOption.textContent = `${monthNames[currentMonth - 1]} ${currentYear} (Current)`;
+            currentOption.selected = true;
+            monthSelector.appendChild(currentOption);
+
+            // Add other months
+            months.forEach(m => {
+                if (m.month !== currentMonth || m.year !== currentYear) {
+                    const option = document.createElement('option');
+                    option.value = `${m.year}-${m.month}`;
+                    option.textContent = `${monthNames[m.month - 1]} ${m.year}`;
+                    monthSelector.appendChild(option);
+                }
+            });
+
+            // Load current month expenses by default
+            loadExpensesForMonth();
+        } catch (error) {
+            console.error('Error loading months:', error);
+            displayExpensesMessage('Could not load available months.', 'danger');
+        }
+    }
+
+    async function loadExpensesForMonth() {
+        const selected = monthSelector.value;
+        if (!selected) return;
+
+        const [year, month] = selected.split('-');
+        expensesContainer.innerHTML = `<p>${t.loading}</p>`;
+
+        try {
+            const response = await fetch(`{{ url_for('expenses_by_month_api') }}?month=${month}&year=${year}`);
+            if (!response.ok) throw new Error('Failed to fetch expenses');
+            
+            const expenses = await response.json();
+
+            if (expenses.length === 0) {
+                expensesContainer.innerHTML = `<p>${t.noExpensesMonth} ${monthNames[parseInt(month) - 1]} ${year}. <a href="{{ url_for('add_expense_page') }}">${t.addOne}</a></p>`;
+                return;
+            }
+
+            let html = `<table><thead><tr><th>${t.date}</th><th>${t.description}</th><th>${t.category}</th><th>${t.merchant}</th><th>${t.amount}</th><th>${t.actions}</th></tr></thead><tbody>`;
+            
+            expenses.forEach(exp => {
+                const expenseDate = exp.date ? new Date(exp.date + 'T00:00:00').toLocaleDateString() : 'N/A';
+                const editUrl = `/edit_expense/${exp.id}`;
+                const deleteUrl = `/delete_expense/${exp.id}`;
+                
+                html += `
+                    <tr>
+                        <td>${expenseDate}</td>
+                        <td>${exp.description || 'N/A'}</td>
+                        <td>${exp.category || 'N/A'}</td>
+                        <td>${exp.merchant || '-'}</td>
+                        <td>₹${parseFloat(exp.amount).toFixed(2)}</td>
+                        <td>
+                            <div class="kebab-menu" id="menu-${exp.id}">
+                                <button class="kebab-button" onclick="toggleKebab(${exp.id})" type="button">⋮</button>
+                                <div class="kebab-dropdown">
+                                    <a href="${editUrl}">${t.edit}</a>
+                                    <div class="divider"></div>
+                                    <form method="POST" action="${deleteUrl}" style="margin: 0;" onsubmit="return confirm('${t.deleteConfirm}');">
+                                        <button type="submit" class="delete-option">${t.delete}</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            expensesContainer.innerHTML = html;
+
+        } catch (error) {
+            console.error('Error loading expenses:', error);
+            expensesContainer.innerHTML = '<p class="alert alert-danger">Could not load expenses.</p>';
+        }
+    }
+
+    function toggleKebab(expenseId) {
+        const menu = document.getElementById(`menu-${expenseId}`);
+        const allMenus = document.querySelectorAll('.kebab-menu');
+        
+        // Close all other menus
+        allMenus.forEach(m => {
+            if (m.id !== `menu-${expenseId}`) {
+                m.classList.remove('active');
+            }
+        });
+        
+        // Toggle current menu
+        menu.classList.toggle('active');
+    }
+
+    // Close kebab menu when clicking outside
+    document.addEventListener('click', (event) => {
+        if (!event.target.closest('.kebab-menu')) {
+            document.querySelectorAll('.kebab-menu').forEach(menu => {
+                menu.classList.remove('active');
+            });
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadAvailableMonths();
+    });
+</script>
 {% endblock %}

@@ -7,24 +7,24 @@
 {% endblock %}
 
 {% block content %}
-<h1>My Dashboard</h1>
+<h1>{{ t.dashboard.title }}</h1>
 <div id="dashboardMessages"></div>
 
 <div class="card">
-    <h2>Spending by Category</h2>
+    <h2>{{ t.dashboard.spending_by_category }}</h2>
     <div class="chart-container" style="height:300px; width:auto;"> <canvas id="categoryChart"></canvas>
     </div>
 </div>
 
 <div class="card">
-    <h2>Spending Over Time</h2>
+    <h2>{{ t.dashboard.spending_over_time }}</h2>
      <div class="chart-container" style="height:300px; width:auto;">
         <canvas id="timeChart"></canvas>
     </div>
 </div>
 
 <div class="card">
-    <h2>Spending by Emotion</h2>
+    <h2>{{ t.dashboard.spending_by_emotion }}</h2>
      <div class="chart-container" style="height:300px; width:auto;">
         <canvas id="emotionChart"></canvas>
     </div>

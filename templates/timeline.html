@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 
-{% block title %}Spending Timeline - Expense Tracker{% endblock %}
+{% block title %}{{ t.timeline.title }} - {{ t.app_name }}{% endblock %}
 
 {% block content %}
-<h1>My Spending Timeline</h1>
+<h1>{{ t.timeline.title }}</h1>
 <div id="timelineMessages"></div>
 <div id="timelineContainer">
-    <p>Loading expenses...</p>
+    <p>{{ t.timeline.loading }}</p>
 </div>
 <div class="pagination mt-2">
-    <button id="prevPageBtn" onclick="loadPage('prev')" style="display:none;" class="button secondary">Previous</button>
+    <button id="prevPageBtn" onclick="loadPage('prev')" style="display:none;" class="button secondary">{{ t.timeline.previous }}</button>
     <span id="pageInfo"></span>
-    <button id="nextPageBtn" onclick="loadPage('next')" style="display:none;" class="button secondary">Next</button>
+    <button id="nextPageBtn" onclick="loadPage('next')" style="display:none;" class="button secondary">{{ t.timeline.next }}</button>
 </div>
 {% endblock %}
 
@@ -24,7 +24,24 @@
     const pageInfoSpan = document.getElementById('pageInfo');
 
     let currentPage = 1;
-    const perPage = 10; 
+    const perPage = 10;
+
+    // Translations
+    const t = {
+        loading: "{{ t.timeline.loading }}",
+        noExpenses: "{{ t.timeline.no_expenses }}",
+        page: "{{ t.timeline.page }}",
+        of: "{{ t.timeline.of }}",
+        felt: "{{ t.timeline.felt }}",
+        date: "{{ t.home.date }}",
+        description: "{{ t.home.description }}",
+        amount: "{{ t.home.amount }}",
+        category: "{{ t.home.category }}",
+        merchant: "{{ t.home.merchant }}",
+        edit: "{{ t.home.edit }}",
+        delete: "{{ t.home.delete }}",
+        deleteConfirm: "{{ t.home.delete_confirm }}"
+    }; 
 
     function displayTimelineMessage(message, type = 'info') {
         timelineMessages.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
@@ -32,7 +49,7 @@
     }
 
     async function fetchExpensesForTimeline(page) {
-        timelineContainer.innerHTML = '<p>Loading expenses...</p>'; 
+        timelineContainer.innerHTML = `<p>${t.loading}</p>`; 
         try {
             // Use url_for for the base API endpoint, then add query parameters
             const baseApiUrl = "{{ url_for('expenses_timeline_api') }}";
@@ -44,7 +61,7 @@
             const data = await response.json();
             
             if ((!data.expenses || data.expenses.length === 0) && page === 1) {
-                timelineContainer.innerHTML = '<p>No expenses found. Start by <a href="{{ url_for("add_expense_page") }}">adding an expense</a>!</p>';
+                timelineContainer.innerHTML = `<p>${t.noExpenses}</p>`;
                 prevPageBtn.style.display = 'none';
                 nextPageBtn.style.display = 'none';
                 pageInfoSpan.textContent = '';
@@ -69,22 +86,38 @@
                 };
                 // Ensure date string is correctly parsed, add T00:00:00 for local interpretation
                 const expenseDate = exp.date ? new Date(exp.date + 'T00:00:00').toLocaleDateString() : 'N/A';
+                const editUrl = `/edit_expense/${exp.id}`;
+                const deleteUrl = `/delete_expense/${exp.id}`;
 
                 html += `
                     <div class="card">
-                        <p><strong>Date:</strong> ${expenseDate}</p>
-                        <p><strong>Description:</strong> ${exp.description || 'N/A'}</p>
-                        <p><strong>Amount:</strong> ₹${exp.amount.toFixed(2)}</p>
-                        <p><strong>Category:</strong> ${exp.category || 'Uncategorized'}</p>
-                        ${exp.merchant ? `<p><strong>Merchant:</strong> ${exp.merchant}</p>` : ''}
-                        ${exp.emotion ? `<p><strong>Felt:</strong> ${emotionEmoji[exp.emotion] || ''} ${exp.emotion}</p>` : ''}
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div style="flex: 1;">
+                                <p><strong>${t.date}:</strong> ${expenseDate}</p>
+                                <p><strong>${t.description}:</strong> ${exp.description || 'N/A'}</p>
+                                <p><strong>${t.amount}:</strong> ₹${exp.amount.toFixed(2)}</p>
+                                <p><strong>${t.category}:</strong> ${exp.category || 'Uncategorized'}</p>
+                                ${exp.merchant ? `<p><strong>${t.merchant}:</strong> ${exp.merchant}</p>` : ''}
+                                ${exp.emotion_tag ? `<p><strong>${t.felt}:</strong> ${emotionEmoji[exp.emotion_tag] || ''} ${exp.emotion_tag}</p>` : ''}
+                            </div>
+                            <div class="kebab-menu" id="timeline-menu-${exp.id}">
+                                <button class="kebab-button" onclick="toggleTimelineKebab(${exp.id})" type="button">⋮</button>
+                                <div class="kebab-dropdown">
+                                    <a href="${editUrl}">${t.edit}</a>
+                                    <div class="divider"></div>
+                                    <form method="POST" action="${deleteUrl}" style="margin: 0;" onsubmit="return confirm('${t.deleteConfirm}');">
+                                        <button type="submit" class="delete-option">${t.delete}</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 `;
             });
             timelineContainer.innerHTML = html;
 
             currentPage = data.current_page;
-            pageInfoSpan.textContent = `Page ${currentPage} of ${data.total_pages}`;
+            pageInfoSpan.textContent = `${t.page} ${currentPage} ${t.of} ${data.total_pages}`;
             prevPageBtn.style.display = data.has_prev ? 'inline-block' : 'none';
             nextPageBtn.style.display = data.has_next ? 'inline-block' : 'none';
             prevPageBtn.disabled = false;
@@ -108,6 +141,30 @@
             fetchExpensesForTimeline(currentPage - 1);
         }
     }
+
+    function toggleTimelineKebab(expenseId) {
+        const menu = document.getElementById(`timeline-menu-${expenseId}`);
+        const allMenus = document.querySelectorAll('.kebab-menu');
+        
+        // Close all other menus
+        allMenus.forEach(m => {
+            if (m.id !== `timeline-menu-${expenseId}`) {
+                m.classList.remove('active');
+            }
+        });
+        
+        // Toggle current menu
+        menu.classList.toggle('active');
+    }
+
+    // Close kebab menu when clicking outside
+    document.addEventListener('click', (event) => {
+        if (!event.target.closest('.kebab-menu')) {
+            document.querySelectorAll('.kebab-menu').forEach(menu => {
+                menu.classList.remove('active');
+            });
+        }
+    });
 
     document.addEventListener('DOMContentLoaded', () => {
         if (document.getElementById('timelineContainer')) { // Only run if on timeline page
