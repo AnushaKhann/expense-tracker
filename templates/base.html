@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="{{ current_language }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ t.app_name }}{% endblock %}</title>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head_extra %}{% endblock %}
+    {% block styles %}{% endblock %} </head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <div class="nav-header">
+                <a href="{{ url_for('index') }}" class="nav-brand">{{ t.app_name }}</a>
+                {% if current_user.is_authenticated %}
+                <button id="mobile-menu-toggle" class="mobile-menu-btn" aria-label="Toggle menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                {% endif %}
+            </div>
+            <div id="nav-menu" class="nav-menu">
+                <ul class="nav-links">
+                    {% if current_user.is_authenticated %}
+                        <li><a href="{{ url_for('index') }}"><i class="fas fa-home"></i> {{ t.navbar.home }}</a></li>
+                        <li><a href="{{ url_for('add_expense_page') }}"><i class="fas fa-plus-circle"></i> {{ t.navbar.add_expense }}</a></li>
+                        <li><a href="{{ url_for('dashboard') }}"><i class="fas fa-chart-line"></i> {{ t.navbar.dashboard }}</a></li>
+                        <li><a href="{{ url_for('budget_page') }}"><i class="fas fa-wallet"></i> {{ t.navbar.budget }}</a></li>
+                        <li><a href="{{ url_for('goals_page') }}"><i class="fas fa-bullseye"></i> {{ t.navbar.goals }}</a></li>
+                        <li><a href="{{ url_for('timeline_page') }}"><i class="fas fa-clock"></i> {{ t.navbar.timeline }}</a></li>
+                    {% endif %}
+                </ul>
+                <div class="nav-auth">
+                    {% if current_user.is_authenticated %}
+                        <div class="language-switcher">
+                            <button id="language-dropdown-btn" class="language-btn" type="button">
+                                <i class="fas fa-globe"></i> {{ current_language|upper }}
+                            </button>
+                            <div id="language-dropdown" class="language-dropdown">
+                                <a href="{{ url_for('set_language', lang='en') }}" class="{% if current_language == 'en' %}active{% endif %}">
+                                    English
+                                </a>
+                                <a href="{{ url_for('set_language', lang='hi') }}" class="{% if current_language == 'hi' %}active{% endif %}">
+                                    हिन्दी (Hindi)
+                                </a>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('logout') }}" class="button secondary small-button">{{ t.navbar.logout }}</a>
+                    {% else %}
+                        <a href="{{ url_for('login') }}" class="button secondary small-button"><i class="fas fa-sign-in-alt"></i> {{ t.navbar.login }}</a>
+                        <a href="{{ url_for('register') }}" class="button small-button"><i class="fas fa-user-plus"></i> {{ t.navbar.register }}</a>
+                    {% endif %}
+                     <button id="theme-toggle-button" aria-label="Toggle theme"><i class="fas fa-moon"></i></button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Language Selection Modal -->
+    {% if current_user.is_authenticated %}
+    <div id="languageModal" class="modal">
+        <div class="modal-content">
+            <h2>{{ t.language.choose }} / भाषा चुनें</h2>
+            <p style="margin-bottom: 1.5rem; color: var(--secondary-color);">Please select your preferred language</p>
+            <div class="language-options">
+                <a href="{{ url_for('set_language', lang='en') }}" class="language-option {% if current_language == 'en' %}selected{% endif %}">
+                    <div class="language-flag">🇬🇧</div>
+                    <div class="language-name">{{ t.language.english }}</div>
+                </a>
+                <a href="{{ url_for('set_language', lang='hi') }}" class="language-option {% if current_language == 'hi' %}selected{% endif %}">
+                    <div class="language-flag">🇮🇳</div>
+                    <div class="language-name">{{ t.language.hindi }}</div>
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div style="margin-bottom: 1rem;">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>&copy; <span id="currentYear"></span> Expense Tracker App. Your financial companion.</p>
+    </footer>
+
+    <script>
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+        const themeToggleButton = document.getElementById('theme-toggle-button');
+        const bodyElement = document.body;
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                bodyElement.classList.add('dark-mode');
+                themeToggleButton.innerHTML = '<i class="fas fa-sun"></i>';
+            } else {
+                bodyElement.classList.remove('dark-mode');
+                themeToggleButton.innerHTML = '<i class="fas fa-moon"></i>';
+            }
+        }
+        let preferredTheme = localStorage.getItem('theme');
+        if (!preferredTheme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            preferredTheme = 'dark';
+        } else if (!preferredTheme) {
+            preferredTheme = 'light';
+        }
+        applyTheme(preferredTheme);
+        themeToggleButton.addEventListener('click', () => {
+            let newTheme = bodyElement.classList.contains('dark-mode') ? 'light' : 'dark';
+            applyTheme(newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
+
+        // Mobile menu toggle
+        {% if current_user.is_authenticated %}
+        const mobileMenuBtn = document.getElementById('mobile-menu-toggle');
+        const navMenu = document.getElementById('nav-menu');
+        
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', () => {
+                mobileMenuBtn.classList.toggle('active');
+                navMenu.classList.toggle('active');
+            });
+
+            // Close menu when clicking on a link
+            const navLinks = document.querySelectorAll('.nav-links a');
+            navLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenuBtn.classList.remove('active');
+                    navMenu.classList.remove('active');
+                });
+            });
+        }
+        {% endif %}
+
+        // Language Modal
+        {% if current_user.is_authenticated %}
+        const languageModal = document.getElementById('languageModal');
+        
+        // Check if language was already selected
+        fetch("{{ url_for('check_language_preference') }}")
+            .then(response => response.json())
+            .then(data => {
+                if (!data.language_selected) {
+                    languageModal.style.display = 'flex';
+                }
+            });
+
+        // Language dropdown toggle
+        const langDropdownBtn = document.getElementById('language-dropdown-btn');
+        const langDropdown = document.getElementById('language-dropdown');
+        
+        if (langDropdownBtn) {
+            langDropdownBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                langDropdown.classList.toggle('show');
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', () => {
+                langDropdown.classList.remove('show');
+            });
+        }
+        {% endif %}
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

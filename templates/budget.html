@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Budgets - Expense Tracker{% endblock %}
+
+{% block content %}
+<h1>Monthly Budget Management</h1>
+<div id="budgetMessages"></div>
+
+<div class="card">
+    <h2>Set or Update Budget</h2>
+    <form id="budgetForm">
+        <div>
+            <label for="budgetCategory">Category:</label>
+            <select id="budgetCategory" required>
+                <option value="Overall">Overall Budget</option>
+                {% for category_name in categories %}
+                <option value="{{ category_name }}">{{ category_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="budgetAmount">Amount (₹):</label>
+            <input type="number" id="budgetAmount" placeholder="e.g., 5000" step="0.01" required>
+        </div>
+        <div>
+            <label for="budgetMonthYear">Month and Year:</label>
+            <input type="month" id="budgetMonthYear" required>
+        </div>
+        <button type="button" onclick="setOrUpdateBudget()" class="button">Set/Update Budget</button>
+    </form>
+</div>
+
+<div class="card mt-2">
+    <h2>Budget Status</h2>
+    <div id="budgetFilter" class="mb-1">
+        <label for="viewBudgetMonthYear">View Budgets for:</label>
+        <input type="month" id="viewBudgetMonthYear">
+        <button type="button" onclick="loadBudgetStatus()" class="button secondary">Load Status</button>
+    </div>
+    <div id="budgetStatusContainer">
+        <p>Select a month and year to view budget status or set a new budget.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const budgetMessages = document.getElementById('budgetMessages');
+    const budgetStatusContainer = document.getElementById('budgetStatusContainer');
+    const budgetMonthYearInput = document.getElementById('budgetMonthYear');
+    const viewBudgetMonthYearInput = document.getElementById('viewBudgetMonthYear');
+
+    function displayBudgetMessage(message, type = 'info') {
+        budgetMessages.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+        setTimeout(() => { budgetMessages.innerHTML = ''; }, 5000);
+    }
+    
+    function getFormattedMonthYear(dateInput) {
+        if (!dateInput.value) return null;
+        const [year, month] = dateInput.value.split('-');
+        return { month: parseInt(month), year: parseInt(year) };
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set default month for forms to current month
+        const today = new Date();
+        const currentMonthISO = today.getFullYear() + '-' + ('0' + (today.getMonth() + 1)).slice(-2);
+        budgetMonthYearInput.value = currentMonthISO;
+        viewBudgetMonthYearInput.value = currentMonthISO;
+        loadBudgetStatus(); // Load status for current month by default
+    });
+
+    async function setOrUpdateBudget() {
+        const category = document.getElementById('budgetCategory').value;
+        const amount = document.getElementById('budgetAmount').value;
+        const monthYear = getFormattedMonthYear(budgetMonthYearInput);
+
+        if (!category || !amount || !monthYear) {
+            displayBudgetMessage('Category, Amount, and Month/Year are required.', 'danger');
+            return;
+        }
+        if (parseFloat(amount) < 0) {
+            displayBudgetMessage('Budget amount cannot be negative.', 'danger');
+            return;
+        }
+
+        const payload = {
+            category: category,
+            amount: parseFloat(amount),
+            month: monthYear.month,
+            year: monthYear.year
+        };
+
+        try {
+            const response = await fetch("{{ url_for('set_budget') }}", {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            if (response.ok) {
+                displayBudgetMessage(result.message, 'success');
+                document.getElementById('budgetForm').reset();
+                 // Reset month to current after successful submission
+                const today = new Date();
+                budgetMonthYearInput.value = today.getFullYear() + '-' + ('0' + (today.getMonth() + 1)).slice(-2);
+                // Reload status for the month the budget was set/updated for
+                viewBudgetMonthYearInput.value = `${monthYear.year}-${String(monthYear.month).padStart(2, '0')}`;
+                loadBudgetStatus();
+            } else {
+                displayBudgetMessage(result.error || 'Failed to set budget.', 'danger');
+            }
+        } catch (error) {
+            console.error('Error setting budget:', error);
+            displayBudgetMessage('An error occurred. Please try again.', 'danger');
+        }
+    }
+
+    async function loadBudgetStatus() {
+        const monthYear = getFormattedMonthYear(viewBudgetMonthYearInput);
+        if (!monthYear) {
+            budgetStatusContainer.innerHTML = '<p>Please select a month and year to view budget status.</p>';
+            return;
+        }
+
+        budgetStatusContainer.innerHTML = '<p>Loading budget status...</p>';
+        try {
+            const response = await fetch(`{{ url_for('budget_status_api') }}?month=${monthYear.month}&year=${monthYear.year}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const statuses = await response.json();
+            
+            if (statuses.length === 0) {
+                budgetStatusContainer.innerHTML = `<p>No budgets set for ${viewBudgetMonthYearInput.valueAsDate.toLocaleString('default', { month: 'long' })} ${monthYear.year}. <a href="#budgetForm">Set one now!</a></p>`;
+                return;
+            }
+
+            let html = '<h3>Budget Overview for ' + viewBudgetMonthYearInput.valueAsDate.toLocaleString('default', { month: 'long' }) + ' ' + monthYear.year + '</h3>';
+            statuses.forEach(s => {
+                const spentPercentage = s.budget_amount > 0 ? (s.spent / s.budget_amount) * 100 : (s.spent > 0 ? 100 : 0);
+                const forecastPercentage = s.budget_amount > 0 ? (s.forecasted_spending / s.budget_amount) * 100 : (s.forecasted_spending > 0 ? 100 : 0);
+                const remainingColor = s.remaining >= 0 ? 'var(--accent-color)' : 'red';
+                const trackStatusColor = s.on_track ? 'var(--accent-color)' : 'red';
+                const trackStatusText = s.on_track ? "On Track" : (s.forecasted_spending > s.budget_amount ? "Over Budget Likely" : "N/A or Goal Met");
+
+
+                html += `
+                    <div class="card">
+                        <h4>${s.category} Budget</h4>
+                        <p><strong>Set Budget:</strong> ₹${s.budget_amount.toFixed(2)}</p>
+                        <p><strong>Spent:</strong> ₹${s.spent.toFixed(2)} (${spentPercentage.toFixed(1)}%)</p>
+                        <div class="progress-bar-container mb-1" title="${spentPercentage.toFixed(1)}% spent">
+                            <div class="progress-bar" style="width: ${Math.min(spentPercentage, 100)}%; background-color: ${spentPercentage > 100 ? 'red' : 'var(--primary-color)'};">
+                                ${spentPercentage.toFixed(1)}%
+                            </div>
+                        </div>
+                        <p><strong>Remaining:</strong> <span style="color: ${remainingColor}; font-weight: bold;">₹${s.remaining.toFixed(2)}</span></p>
+                        ${ (new Date(s.year, s.month -1)).getMonth() === new Date().getMonth() && (new Date(s.year, s.month -1)).getFullYear() === new Date().getFullYear() ? `
+                        <p><strong>Forecasted Spending:</strong> ₹${s.forecasted_spending.toFixed(2)} (${forecastPercentage.toFixed(1)}%)</p>
+                        <p><strong>Status:</strong> <span style="color: ${trackStatusColor}; font-weight: bold;">${trackStatusText}</span></p>
+                        ` : `<p><em>Forecasting applies to current month only.</em></p>` }
+                    </div>
+                `;
+            });
+            budgetStatusContainer.innerHTML = html;
+
+        } catch (error) {
+            console.error('Error loading budget status:', error);
+            budgetStatusContainer.innerHTML = `<p class="alert alert-danger">Could not load budget status: ${error.message}</p>`;
+        }
+    }
+</script>
+{% endblock %}

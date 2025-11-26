@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: expense-tracker
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: expense-tracker-db  # this is your Render DB name
+          property: connectionString
+      - key: SECRET_KEY
+        sync: false  # this means you'll manually set it in Render dashboard

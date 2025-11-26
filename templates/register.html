@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="card auth-form">
+    <h2>Create Your Account</h2>
+    <form method="POST" action="{{ url_for('register') }}" novalidate>
+        {{ form.csrf_token }} {# CSRF protection token #}
+        
+        <div>
+            {{ form.username.label(class="form-label") }}
+            {% if form.username.errors %}
+                {{ form.username(class="form-control form-control-lg is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in form.username.errors %}
+                        <span>{{ error }}</span>
+                    {% endfor %}
+                </div>
+            {% else %}
+                {{ form.username(class="form-control form-control-lg") }}
+            {% endif %}
+        </div>
+
+        <div class="mt-1">
+            {{ form.email.label(class="form-label") }}
+            {% if form.email.errors %}
+                {{ form.email(class="form-control form-control-lg is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in form.email.errors %}
+                        <span>{{ error }}</span>
+                    {% endfor %}
+                </div>
+            {% else %}
+                {{ form.email(class="form-control form-control-lg") }}
+            {% endif %}
+        </div>
+
+        <div class="mt-1">
+            {{ form.password.label(class="form-label") }}
+            {% if form.password.errors %}
+                {{ form.password(class="form-control form-control-lg is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in form.password.errors %}
+                        <span>{{ error }}</span>
+                    {% endfor %}
+                </div>
+            {% else %}
+                {{ form.password(class="form-control form-control-lg") }}
+            {% endif %}
+        </div>
+
+        <div class="mt-1">
+            {{ form.confirm_password.label(class="form-label") }}
+            {% if form.confirm_password.errors %}
+                {{ form.confirm_password(class="form-control form-control-lg is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in form.confirm_password.errors %}
+                        <span>{{ error }}</span>
+                    {% endfor %}
+                </div>
+            {% else %}
+                {{ form.confirm_password(class="form-control form-control-lg") }}
+            {% endif %}
+        </div>
+        
+        <div class="mt-2">
+            {{ form.submit(class="button") }}
+        </div>
+    </form>
+    <p class="mt-1 text-center">Already have an account? <a href="{{ url_for('login') }}">Log In</a></p>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .auth-form { max-width: 450px; margin: 2rem auto; padding: 2rem; }
+    .form-label { display: block; margin-bottom: .5rem; font-weight: bold; }
+    .form-control-lg { /* Assuming your style.css has .form-control or similar */
+        width: 100%; padding: .5rem 1rem; font-size: 1.25rem; 
+        line-height: 1.5; border-radius: .3rem;
+        border: 1px solid var(--input-border); background-color: var(--input-bg); color: var(--text-color);
+    }
+    .is-invalid { border-color: #dc3545; }
+    .invalid-feedback { display: block; width: 100%; margin-top: .25rem; font-size: .875em; color: #dc3545;}
+</style>
+{% endblock %}

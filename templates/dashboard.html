@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Expense Tracker{% endblock %}
+
+{% block head_extra %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<h1>{{ t.dashboard.title }}</h1>
+<div id="dashboardMessages"></div>
+
+<div class="card">
+    <h2><i class="fas fa-chart-pie"></i> {{ t.dashboard.spending_by_category }}</h2>
+    <div class="chart-container">
+        <canvas id="categoryChart"></canvas>
+    </div>
+</div>
+
+<div class="card">
+    <h2><i class="fas fa-chart-line"></i> {{ t.dashboard.spending_over_time }}</h2>
+    <div class="chart-container">
+        <canvas id="timeChart"></canvas>
+    </div>
+</div>
+
+<div class="card">
+    <h2><i class="fas fa-chart-bar"></i> {{ t.dashboard.spending_by_emotion }}</h2>
+    <div class="chart-container">
+        <canvas id="emotionChart"></canvas>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const dashboardMessages = document.getElementById('dashboardMessages');
+
+    function displayDashboardMessage(message, type = 'info') {
+        dashboardMessages.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+        setTimeout(() => { dashboardMessages.innerHTML = ''; }, 5000);
+    }
+
+    // Chart.js reusable function for fetching data and rendering chart
+    async function renderChart(canvasId, endpoint, chartType, labelSingular, chartOptions = {}) {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        try {
+            const response = await fetch(endpoint);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch data from ${endpoint}: ${response.statusText}`);
+            }
+            const data = await response.json();
+
+            if (!data.labels || data.labels.length === 0) {
+                displayDashboardMessage(`No data available for ${labelSingular} chart.`, 'info');
+                // Optionally display a placeholder on the canvas
+                ctx.font = "16px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText("No data to display", ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return null; // Return null if no chart is rendered
+            }
+            
+            // Common dataset properties
+            const datasetDefaults = {
+                borderWidth: 3,
+                tension: 0.4 // Smooth curves for line charts
+            };
+            
+            // Modern gradient colors matching the design system
+            const modernColors = [
+                { bg: 'rgba(147, 51, 234, 0.8)', border: 'rgba(147, 51, 234, 1)' }, // Purple
+                { bg: 'rgba(59, 130, 246, 0.8)', border: 'rgba(59, 130, 246, 1)' }, // Blue
+                { bg: 'rgba(16, 185, 129, 0.8)', border: 'rgba(16, 185, 129, 1)' }, // Green
+                { bg: 'rgba(245, 158, 11, 0.8)', border: 'rgba(245, 158, 11, 1)' }, // Amber
+                { bg: 'rgba(239, 68, 68, 0.8)', border: 'rgba(239, 68, 68, 1)' }, // Red
+                { bg: 'rgba(236, 72, 153, 0.8)', border: 'rgba(236, 72, 153, 1)' }, // Pink
+                { bg: 'rgba(14, 165, 233, 0.8)', border: 'rgba(14, 165, 233, 1)' }, // Sky
+                { bg: 'rgba(168, 85, 247, 0.8)', border: 'rgba(168, 85, 247, 1)' }, // Violet
+                { bg: 'rgba(34, 197, 94, 0.8)', border: 'rgba(34, 197, 94, 1)' }  // Emerald
+            ];
+            
+            const backgroundColors = modernColors.map(c => c.bg);
+            const borderColors = modernColors.map(c => c.border);
+
+            let chartData = {
+                labels: data.labels,
+                datasets: [{
+                    label: `Total ${labelSingular}`,
+                    data: data.data,
+                    backgroundColor: chartType === 'line' 
+                        ? createGradient(ctx, 'rgba(147, 51, 234, 0.3)', 'rgba(59, 130, 246, 0.1)') 
+                        : backgroundColors,
+                    borderColor: chartType === 'line' 
+                        ? 'rgba(147, 51, 234, 1)' 
+                        : borderColors,
+                    borderWidth: chartType === 'line' ? 3 : 2,
+                    fill: chartType === 'line',
+                    tension: 0.4,
+                    pointRadius: chartType === 'line' ? 5 : 0,
+                    pointHoverRadius: chartType === 'line' ? 7 : 0,
+                    pointBackgroundColor: chartType === 'line' ? 'rgba(147, 51, 234, 1)' : undefined,
+                    pointBorderColor: chartType === 'line' ? '#fff' : undefined,
+                    pointBorderWidth: chartType === 'line' ? 2 : 0
+                }]
+            };
+            
+            // Default options with modern styling
+            const defaultChartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 1000,
+                    easing: 'easeInOutQuart'
+                },
+                plugins: {
+                    legend: {
+                        position: chartType === 'pie' || chartType === 'doughnut' ? 'top' : 'bottom',
+                        labels: {
+                            padding: 15,
+                            font: {
+                                size: 13,
+                                family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+                                weight: '500'
+                            },
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: { size: 14, weight: 'bold' },
+                        bodyFont: { size: 13 },
+                        borderColor: 'rgba(147, 51, 234, 0.5)',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        displayColors: true,
+                        boxPadding: 6
+                    },
+                    title: {
+                        display: false
+                    }
+                }
+            };
+            
+            if (chartType === 'bar' || chartType === 'line') {
+                defaultChartOptions.scales = { 
+                    y: { 
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 12,
+                                family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 12,
+                                family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                            }
+                        }
+                    }
+                };
+            }
+            
+            // Helper function to create gradient for line charts
+            function createGradient(ctx, colorStart, colorEnd) {
+                const gradient = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height);
+                gradient.addColorStop(0, colorStart);
+                gradient.addColorStop(1, colorEnd);
+                return gradient;
+            }
+
+
+            return new Chart(ctx, {
+                type: chartType,
+                data: chartData,
+                options: {...defaultChartOptions, ...chartOptions} // Merge default with specific options
+            });
+
+        } catch (error) {
+            console.error(`Error rendering ${canvasId}:`, error);
+            displayDashboardMessage(`Could not load ${labelSingular} chart. ${error.message}`, 'danger');
+            ctx.font = "16px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("Error loading chart data", ctx.canvas.width / 2, ctx.canvas.height / 2);
+            return null;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        renderChart('categoryChart', "{{ url_for('spending_by_category_api') }}", 'pie', 'Spending by Category');
+        renderChart('timeChart', "{{ url_for('spending_over_time_api') }}", 'line', 'Spending Over Time');
+        renderChart('emotionChart', "{{ url_for('emotion_spending_api') }}", 'bar', 'Spending by Emotion');
+    });
+</script>
+{% endblock %}
