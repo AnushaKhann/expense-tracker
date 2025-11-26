@@ -4,45 +4,57 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ t.app_name }}{% endblock %}</title>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block head_extra %}{% endblock %}
     {% block styles %}{% endblock %} </head>
 <body>
     <nav>
         <div class="nav-container">
-            <a href="{{ url_for('index') }}" class="nav-brand">{{ t.app_name }}</a>
-            <ul class="nav-links">
+            <div class="nav-header">
+                <a href="{{ url_for('index') }}" class="nav-brand">{{ t.app_name }}</a>
                 {% if current_user.is_authenticated %}
-                    <li><a href="{{ url_for('index') }}">{{ t.navbar.home }}</a></li>
-                    <li><a href="{{ url_for('add_expense_page') }}">{{ t.navbar.add_expense }}</a></li>
-                    <li><a href="{{ url_for('dashboard') }}">{{ t.navbar.dashboard }}</a></li>
-                    <li><a href="{{ url_for('budget_page') }}">{{ t.navbar.budget }}</a></li>
-                    <li><a href="{{ url_for('goals_page') }}">{{ t.navbar.goals }}</a></li>
-                    <li><a href="{{ url_for('timeline_page') }}">{{ t.navbar.timeline }}</a></li>
+                <button id="mobile-menu-toggle" class="mobile-menu-btn" aria-label="Toggle menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
                 {% endif %}
-            </ul>
-            <div class="nav-auth">
-                {% if current_user.is_authenticated %}
-                    <span class="nav-user">{{ t.navbar.home }}, {{ current_user.username }}!</span>
-                    <div class="language-switcher">
-                        <button id="language-dropdown-btn" class="language-btn" type="button">
-                            🌐 {{ current_language|upper }}
-                        </button>
-                        <div id="language-dropdown" class="language-dropdown">
-                            <a href="{{ url_for('set_language', lang='en') }}" class="{% if current_language == 'en' %}active{% endif %}">
-                                English
-                            </a>
-                            <a href="{{ url_for('set_language', lang='hi') }}" class="{% if current_language == 'hi' %}active{% endif %}">
-                                हिन्दी (Hindi)
-                            </a>
+            </div>
+            <div id="nav-menu" class="nav-menu">
+                <ul class="nav-links">
+                    {% if current_user.is_authenticated %}
+                        <li><a href="{{ url_for('index') }}"><i class="fas fa-home"></i> {{ t.navbar.home }}</a></li>
+                        <li><a href="{{ url_for('add_expense_page') }}"><i class="fas fa-plus-circle"></i> {{ t.navbar.add_expense }}</a></li>
+                        <li><a href="{{ url_for('dashboard') }}"><i class="fas fa-chart-line"></i> {{ t.navbar.dashboard }}</a></li>
+                        <li><a href="{{ url_for('budget_page') }}"><i class="fas fa-wallet"></i> {{ t.navbar.budget }}</a></li>
+                        <li><a href="{{ url_for('goals_page') }}"><i class="fas fa-bullseye"></i> {{ t.navbar.goals }}</a></li>
+                        <li><a href="{{ url_for('timeline_page') }}"><i class="fas fa-clock"></i> {{ t.navbar.timeline }}</a></li>
+                    {% endif %}
+                </ul>
+                <div class="nav-auth">
+                    {% if current_user.is_authenticated %}
+                        <div class="language-switcher">
+                            <button id="language-dropdown-btn" class="language-btn" type="button">
+                                <i class="fas fa-globe"></i> {{ current_language|upper }}
+                            </button>
+                            <div id="language-dropdown" class="language-dropdown">
+                                <a href="{{ url_for('set_language', lang='en') }}" class="{% if current_language == 'en' %}active{% endif %}">
+                                    English
+                                </a>
+                                <a href="{{ url_for('set_language', lang='hi') }}" class="{% if current_language == 'hi' %}active{% endif %}">
+                                    हिन्दी (Hindi)
+                                </a>
+                            </div>
                         </div>
-                    </div>
-                    <a href="{{ url_for('logout') }}" class="button secondary small-button">{{ t.navbar.logout }}</a>
-                {% else %}
-                    <a href="{{ url_for('login') }}" class="button secondary small-button">{{ t.navbar.login }}</a>
-                    <a href="{{ url_for('register') }}" class="button small-button">{{ t.navbar.register }}</a>
-                {% endif %}
-                 <button id="theme-toggle-button" aria-label="Toggle theme">🌓</button>
+                        <a href="{{ url_for('logout') }}" class="button secondary small-button">{{ t.navbar.logout }}</a>
+                    {% else %}
+                        <a href="{{ url_for('login') }}" class="button secondary small-button"><i class="fas fa-sign-in-alt"></i> {{ t.navbar.login }}</a>
+                        <a href="{{ url_for('register') }}" class="button small-button"><i class="fas fa-user-plus"></i> {{ t.navbar.register }}</a>
+                    {% endif %}
+                     <button id="theme-toggle-button" aria-label="Toggle theme"><i class="fas fa-moon"></i></button>
+                </div>
             </div>
         </div>
     </nav>
@@ -91,10 +103,10 @@
         function applyTheme(theme) {
             if (theme === 'dark') {
                 bodyElement.classList.add('dark-mode');
-                themeToggleButton.textContent = '☀️';
+                themeToggleButton.innerHTML = '<i class="fas fa-sun"></i>';
             } else {
                 bodyElement.classList.remove('dark-mode');
-                themeToggleButton.textContent = '🌓';
+                themeToggleButton.innerHTML = '<i class="fas fa-moon"></i>';
             }
         }
         let preferredTheme = localStorage.getItem('theme');
@@ -109,6 +121,28 @@
             applyTheme(newTheme);
             localStorage.setItem('theme', newTheme);
         });
+
+        // Mobile menu toggle
+        {% if current_user.is_authenticated %}
+        const mobileMenuBtn = document.getElementById('mobile-menu-toggle');
+        const navMenu = document.getElementById('nav-menu');
+        
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', () => {
+                mobileMenuBtn.classList.toggle('active');
+                navMenu.classList.toggle('active');
+            });
+
+            // Close menu when clicking on a link
+            const navLinks = document.querySelectorAll('.nav-links a');
+            navLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenuBtn.classList.remove('active');
+                    navMenu.classList.remove('active');
+                });
+            });
+        }
+        {% endif %}
 
         // Language Modal
         {% if current_user.is_authenticated %}

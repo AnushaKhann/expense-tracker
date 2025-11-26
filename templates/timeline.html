@@ -80,9 +80,15 @@
 
             let html = '';
             data.expenses.forEach(exp => {
-                const emotionEmoji = {
-                    happy: '😊', neutral: '😐', sad: '😟', stressed: '😠', excited: '🎉', 
-                    regretful: '🤦', necessary: '✅', motivated: '💪' // Added motivated
+                const emotionIcons = {
+                    happy: '<i class="fas fa-smile" style="color: #48bb78;"></i>',
+                    neutral: '<i class="fas fa-meh" style="color: #718096;"></i>',
+                    sad: '<i class="fas fa-frown" style="color: #fc8181;"></i>',
+                    stressed: '<i class="fas fa-tired" style="color: #f6ad55;"></i>',
+                    excited: '<i class="fas fa-star" style="color: #f6ad55;"></i>',
+                    regretful: '<i class="fas fa-face-frown-open" style="color: #fc8181;"></i>',
+                    necessary: '<i class="fas fa-check-circle" style="color: #48bb78;"></i>',
+                    motivated: '<i class="fas fa-fire" style="color: #ed64a6;"></i>'
                 };
                 // Ensure date string is correctly parsed, add T00:00:00 for local interpretation
                 const expenseDate = exp.date ? new Date(exp.date + 'T00:00:00').toLocaleDateString() : 'N/A';
@@ -98,15 +104,15 @@
                                 <p><strong>${t.amount}:</strong> ₹${exp.amount.toFixed(2)}</p>
                                 <p><strong>${t.category}:</strong> ${exp.category || 'Uncategorized'}</p>
                                 ${exp.merchant ? `<p><strong>${t.merchant}:</strong> ${exp.merchant}</p>` : ''}
-                                ${exp.emotion_tag ? `<p><strong>${t.felt}:</strong> ${emotionEmoji[exp.emotion_tag] || ''} ${exp.emotion_tag}</p>` : ''}
+                                ${exp.emotion_tag ? `<p><strong>${t.felt}:</strong> ${emotionIcons[exp.emotion_tag] || ''} ${exp.emotion_tag}</p>` : ''}
                             </div>
                             <div class="kebab-menu" id="timeline-menu-${exp.id}">
-                                <button class="kebab-button" onclick="toggleTimelineKebab(${exp.id})" type="button">⋮</button>
+                                <button class="kebab-button" onclick="toggleTimelineKebab(${exp.id})" type="button"><i class="fas fa-ellipsis-v"></i></button>
                                 <div class="kebab-dropdown">
-                                    <a href="${editUrl}">${t.edit}</a>
+                                    <a href="${editUrl}"><i class="fas fa-edit"></i> ${t.edit}</a>
                                     <div class="divider"></div>
                                     <form method="POST" action="${deleteUrl}" style="margin: 0;" onsubmit="return confirm('${t.deleteConfirm}');">
-                                        <button type="submit" class="delete-option">${t.delete}</button>
+                                        <button type="submit" class="delete-option"><i class="fas fa-trash-alt"></i> ${t.delete}</button>
                                     </form>
                                 </div>
                             </div>

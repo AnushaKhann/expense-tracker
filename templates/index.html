@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="text-center">
-    <h1>{{ t.home.welcome }}</h1>
+    <h1>Welcome, {{ current_user.username }}!</h1>
     <p>{{ t.home.subtitle }}</p>
     <a href="{{ url_for('add_expense_page') }}" class="button mt-1">{{ t.home.log_new_expense }}</a>
     <a href="{{ url_for('dashboard') }}" class="button secondary mt-1">{{ t.home.view_dashboard }}</a>
@@ -117,7 +117,7 @@
                 return;
             }
 
-            let html = `<table><thead><tr><th>${t.date}</th><th>${t.description}</th><th>${t.category}</th><th>${t.merchant}</th><th>${t.amount}</th><th>${t.actions}</th></tr></thead><tbody>`;
+            let html = `<div class="expense-table-wrapper"><table><thead><tr><th>${t.date}</th><th>${t.description}</th><th>${t.category}</th><th>${t.merchant}</th><th>${t.amount}</th><th>${t.actions}</th></tr></thead><tbody>`;
             
             expenses.forEach(exp => {
                 const expenseDate = exp.date ? new Date(exp.date + 'T00:00:00').toLocaleDateString() : 'N/A';
@@ -133,12 +133,12 @@
                         <td>₹${parseFloat(exp.amount).toFixed(2)}</td>
                         <td>
                             <div class="kebab-menu" id="menu-${exp.id}">
-                                <button class="kebab-button" onclick="toggleKebab(${exp.id})" type="button">⋮</button>
+                                <button class="kebab-button" onclick="toggleKebab(${exp.id})" type="button"><i class="fas fa-ellipsis-v"></i></button>
                                 <div class="kebab-dropdown">
-                                    <a href="${editUrl}">${t.edit}</a>
+                                    <a href="${editUrl}"><i class="fas fa-edit"></i> ${t.edit}</a>
                                     <div class="divider"></div>
                                     <form method="POST" action="${deleteUrl}" style="margin: 0;" onsubmit="return confirm('${t.deleteConfirm}');">
-                                        <button type="submit" class="delete-option">${t.delete}</button>
+                                        <button type="submit" class="delete-option"><i class="fas fa-trash-alt"></i> ${t.delete}</button>
                                     </form>
                                 </div>
                             </div>
@@ -147,7 +147,7 @@
                 `;
             });
             
-            html += '</tbody></table>';
+            html += '</tbody></table></div>';
             expensesContainer.innerHTML = html;
 
         } catch (error) {

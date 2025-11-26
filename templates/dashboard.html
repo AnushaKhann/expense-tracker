@@ -11,21 +11,22 @@
 <div id="dashboardMessages"></div>
 
 <div class="card">
-    <h2>{{ t.dashboard.spending_by_category }}</h2>
-    <div class="chart-container" style="height:300px; width:auto;"> <canvas id="categoryChart"></canvas>
+    <h2><i class="fas fa-chart-pie"></i> {{ t.dashboard.spending_by_category }}</h2>
+    <div class="chart-container">
+        <canvas id="categoryChart"></canvas>
     </div>
 </div>
 
 <div class="card">
-    <h2>{{ t.dashboard.spending_over_time }}</h2>
-     <div class="chart-container" style="height:300px; width:auto;">
+    <h2><i class="fas fa-chart-line"></i> {{ t.dashboard.spending_over_time }}</h2>
+    <div class="chart-container">
         <canvas id="timeChart"></canvas>
     </div>
 </div>
 
 <div class="card">
-    <h2>{{ t.dashboard.spending_by_emotion }}</h2>
-     <div class="chart-container" style="height:300px; width:auto;">
+    <h2><i class="fas fa-chart-bar"></i> {{ t.dashboard.spending_by_emotion }}</h2>
+    <div class="chart-container">
         <canvas id="emotionChart"></canvas>
     </div>
 </div>
@@ -61,42 +62,122 @@
             
             // Common dataset properties
             const datasetDefaults = {
-                borderWidth: 1
+                borderWidth: 3,
+                tension: 0.4 // Smooth curves for line charts
             };
-             // Default background colors for pie/doughnut/bar
-            const defaultBackgroundColors = [
-                'rgba(255, 99, 132, 0.7)', 'rgba(54, 162, 235, 0.7)', 'rgba(255, 206, 86, 0.7)',
-                'rgba(75, 192, 192, 0.7)', 'rgba(153, 102, 255, 0.7)', 'rgba(255, 159, 64, 0.7)',
-                'rgba(199, 199, 199, 0.7)', 'rgba(83, 102, 255, 0.7)', 'rgba(100, 255, 100, 0.7)'
+            
+            // Modern gradient colors matching the design system
+            const modernColors = [
+                { bg: 'rgba(147, 51, 234, 0.8)', border: 'rgba(147, 51, 234, 1)' }, // Purple
+                { bg: 'rgba(59, 130, 246, 0.8)', border: 'rgba(59, 130, 246, 1)' }, // Blue
+                { bg: 'rgba(16, 185, 129, 0.8)', border: 'rgba(16, 185, 129, 1)' }, // Green
+                { bg: 'rgba(245, 158, 11, 0.8)', border: 'rgba(245, 158, 11, 1)' }, // Amber
+                { bg: 'rgba(239, 68, 68, 0.8)', border: 'rgba(239, 68, 68, 1)' }, // Red
+                { bg: 'rgba(236, 72, 153, 0.8)', border: 'rgba(236, 72, 153, 1)' }, // Pink
+                { bg: 'rgba(14, 165, 233, 0.8)', border: 'rgba(14, 165, 233, 1)' }, // Sky
+                { bg: 'rgba(168, 85, 247, 0.8)', border: 'rgba(168, 85, 247, 1)' }, // Violet
+                { bg: 'rgba(34, 197, 94, 0.8)', border: 'rgba(34, 197, 94, 1)' }  // Emerald
             ];
+            
+            const backgroundColors = modernColors.map(c => c.bg);
+            const borderColors = modernColors.map(c => c.border);
 
             let chartData = {
                 labels: data.labels,
                 datasets: [{
                     label: `Total ${labelSingular}`,
                     data: data.data,
-                    backgroundColor: chartType === 'line' ? 'rgba(75, 192, 192, 0.2)' : defaultBackgroundColors,
-                    borderColor: chartType === 'line' ? 'rgba(75, 192, 192, 1)' : defaultBackgroundColors.map(color => color.replace('0.7', '1')), // Darker border for non-line
-                    fill: chartType === 'line' // Fill for line charts, not for others unless specified
+                    backgroundColor: chartType === 'line' 
+                        ? createGradient(ctx, 'rgba(147, 51, 234, 0.3)', 'rgba(59, 130, 246, 0.1)') 
+                        : backgroundColors,
+                    borderColor: chartType === 'line' 
+                        ? 'rgba(147, 51, 234, 1)' 
+                        : borderColors,
+                    borderWidth: chartType === 'line' ? 3 : 2,
+                    fill: chartType === 'line',
+                    tension: 0.4,
+                    pointRadius: chartType === 'line' ? 5 : 0,
+                    pointHoverRadius: chartType === 'line' ? 7 : 0,
+                    pointBackgroundColor: chartType === 'line' ? 'rgba(147, 51, 234, 1)' : undefined,
+                    pointBorderColor: chartType === 'line' ? '#fff' : undefined,
+                    pointBorderWidth: chartType === 'line' ? 2 : 0
                 }]
             };
             
-            // Default options
+            // Default options with modern styling
             const defaultChartOptions = {
                 responsive: true,
-                maintainAspectRatio: false, // Important for custom container size
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 1000,
+                    easing: 'easeInOutQuart'
+                },
                 plugins: {
                     legend: {
                         position: chartType === 'pie' || chartType === 'doughnut' ? 'top' : 'bottom',
+                        labels: {
+                            padding: 15,
+                            font: {
+                                size: 13,
+                                family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+                                weight: '500'
+                            },
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: { size: 14, weight: 'bold' },
+                        bodyFont: { size: 13 },
+                        borderColor: 'rgba(147, 51, 234, 0.5)',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        displayColors: true,
+                        boxPadding: 6
                     },
                     title: {
-                        display: false, // Set to true if you want a title within the chart
-                        // text: `${labelSingular} Overview`
+                        display: false
                     }
                 }
             };
+            
             if (chartType === 'bar' || chartType === 'line') {
-                defaultChartOptions.scales = { y: { beginAtZero: true } };
+                defaultChartOptions.scales = { 
+                    y: { 
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 12,
+                                family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 12,
+                                family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                            }
+                        }
+                    }
+                };
+            }
+            
+            // Helper function to create gradient for line charts
+            function createGradient(ctx, colorStart, colorEnd) {
+                const gradient = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height);
+                gradient.addColorStop(0, colorStart);
+                gradient.addColorStop(1, colorEnd);
+                return gradient;
             }
 
 
